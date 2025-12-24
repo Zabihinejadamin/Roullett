@@ -112,17 +112,17 @@ class RouletteWheel(Widget):
                         # Snap ball to the exact center of the winning pocket
                         if self.winning_number is not None:
                             pocket_index = self.NUMBERS.index(self.winning_number)
-                            self.ball_angle = self.angle + (pocket_index * self.angle_per_pocket)
+                            self.ball_angle = (self.angle + (pocket_index * self.angle_per_pocket)) % (2 * math.pi)
 
-                        # Play ball settle sound
-                        if hasattr(self, 'game') and self.game.ball_settle_sound:
-                            self.game.ball_settle_sound.play()
+                        # Play ball settle sound (disabled - only using ball sound)
+                        # if hasattr(self, 'game') and self.game.ball_settle_sound:
+                        #     self.game.ball_settle_sound.play()
 
                     print(f"Wheel and ball stopped after {self.wheel_rotations_after_drop:.1f} rotations!")
 
-                    # Stop wheel spinning sound
-                    if hasattr(self, 'game') and self.game.wheel_spin_sound:
-                        self.game.wheel_spin_sound.stop()
+                    # Stop wheel spinning sound (disabled - only using ball sound)
+                    # if hasattr(self, 'game') and self.game.wheel_spin_sound:
+                    #     self.game.wheel_spin_sound.stop()
             elif self.spin_speed < 0.05:  # Fallback if ball hasn't dropped yet
                 self.spinning = False
                 self.spin_speed = 0.0
@@ -134,6 +134,9 @@ class RouletteWheel(Widget):
             if self.ball_on_bumper:
                 old_angle = self.ball_angle
                 self.ball_angle += self.ball_speed * dt
+
+                # Normalize ball angle to prevent precision issues
+                self.ball_angle = self.ball_angle % (2 * math.pi)
 
                 # Track rotations on bumper
                 angle_diff = self.ball_angle - old_angle
@@ -151,14 +154,16 @@ class RouletteWheel(Widget):
                         self.ball_speed *= 0.7  # Speed reduction when dropping
                         print(f"Ball dropped from bumper to number section after {self.ball_rotations:.1f} rotations!")
 
-                        # Play ball drop sound
+                        # Stop the sound when ball drops
                         if hasattr(self, 'game') and self.game.ball_drop_sound:
-                            self.game.ball_drop_sound.play()
+                            self.game.ball_drop_sound.stop()
 
                 self.ball_speed *= 0.995  # Light friction on bumper track
             else:
                 # Ball on number section - moves with wheel and slows down
                 self.ball_angle += (self.ball_speed + self.spin_speed) * dt  # Ball moves with wheel
+                # Normalize ball angle to prevent precision issues
+                self.ball_angle = self.ball_angle % (2 * math.pi)
                 self.ball_speed *= 0.97  # More friction on number section
 
             # Ball stops only when wheel stops after 4 rotations (handled above)
@@ -380,14 +385,31 @@ class RouletteWheel(Widget):
                     ball_track_radius = pocket_inner + 8  # Position inside the pocket
                     ball_angle = self.ball_angle  # Keep ball at its settled position
                 elif self.ball_on_bumper:
-                    # Ball on bumper track (outer margin)
-                    ball_track_radius = (bumper_outer + bumper_inner) / 2  # Middle of bumper track
+                    # Ball on bumper track (outer margin) - ensure ball never extends beyond track
+                    ball_visual_radius = 9  # ball_size/2 = 18/2 = 9 pixels
+
+                    # Position ball so its outer edge is at bumper_outer minus safety margin
+                    # This ensures the ball never visually extends beyond the track
+                    max_ball_radius = bumper_outer - ball_visual_radius - 2  # 2 pixel safety margin
+                    min_ball_radius = bumper_inner + ball_visual_radius + 2  # 2 pixel safety margin
+
+                    # Position ball in the middle of the safe zone
+                    ball_track_radius = (max_ball_radius + min_ball_radius) / 2
+
+                    # Ensure it stays within absolute bounds
+                    ball_track_radius = max(min_ball_radius, min(max_ball_radius, ball_track_radius))
+
                     ball_angle = self.ball_angle
                 else:
                     # Ball on inner track (pockets section) - moves between pocket edges
                     # Ball gradually moves inward as it slows down
-                    progress_to_stop = max(0, (self.ball_speed - 0.1) / 2.0)  # 0 to 1 as ball slows
+                    progress_to_stop = max(0, min(1, (self.ball_speed - 0.1) / 2.0))  # Clamp to 0-1
                     ball_track_radius = pocket_outer - (pocket_outer - pocket_inner) * (1 - progress_to_stop)
+
+                    # Ensure ball stays within wheel bounds
+                    max_safe_radius = radius - 5  # Stay well within wheel
+                    ball_track_radius = max(pocket_inner + 2, min(max_safe_radius, ball_track_radius))
+
                     ball_angle = self.ball_angle
 
                 ball_x = center_x + math.cos(ball_angle) * ball_track_radius
@@ -495,55 +517,64 @@ class RouletteGame(BoxLayout):
         Window.bind(on_key_down=self.on_key_down)
 
     def load_sounds(self):
-        """Load casino sound effects"""
-        # Try to load sound files first
-        self.wheel_spin_sound = SoundLoader.load('sounds/wheel_spin.wav')
-        self.ball_launch_sound = SoundLoader.load('sounds/ball_launch.wav')
-        self.ball_drop_sound = SoundLoader.load('sounds/ball_drop.wav')
-        self.ball_settle_sound = SoundLoader.load('sounds/ball_settle.wav')
-        self.casino_ambiance = SoundLoader.load('sounds/casino_ambiance.wav')
+        """Load casino sound effects - only using professional ball sound"""
+        print("Loading professional casino sound...")
 
-        # If sound files don't exist, create simple beep sounds
-        if not all([self.wheel_spin_sound, self.ball_launch_sound, self.ball_drop_sound, self.ball_settle_sound]):
-            print("Sound files not found, using system beep sounds...")
-            self.create_beep_functions()
+        # Only load the user's professional sound file
+        professional_sound = SoundLoader.load('sounds/a-roulette-ball-429831.mp3')
+        if professional_sound:
+            # Use the professional sound for ball drop effect
+            self.ball_drop_sound = professional_sound
+            print("Professional ball sound loaded successfully!")
+        else:
+            print("Professional sound file not found, no sound will play.")
+            self.ball_drop_sound = None
 
-        # Set sound properties for loaded sounds
-        if self.wheel_spin_sound:
-            self.wheel_spin_sound.loop = True
-        if self.casino_ambiance:
-            self.casino_ambiance.loop = True
-            self.casino_ambiance.volume = 0.3
+        # Don't use any other sounds - only the professional ball sound
+        self.wheel_spin_sound = None
+        self.ball_launch_sound = None
+        self.ball_settle_sound = None
+        self.casino_ambiance = None
 
     def create_simple_sounds(self):
-        """Create simple beep sounds programmatically"""
+        """Create realistic casino sound effects programmatically"""
         # Create sounds directory if it doesn't exist
         os.makedirs('sounds', exist_ok=True)
 
-        # Try to create WAV files, fallback to system beeps
         if WAVE_AVAILABLE:
             try:
-                # Create simple beep sounds
-                self.create_beep_sound('sounds/wheel_spin.wav', frequency=200, duration=2.0, volume=0.3)
-                self.create_beep_sound('sounds/ball_launch.wav', frequency=800, duration=0.2, volume=0.5)
-                self.create_beep_sound('sounds/ball_drop.wav', frequency=600, duration=0.3, volume=0.4)
-                self.create_beep_sound('sounds/ball_settle.wav', frequency=1000, duration=0.1, volume=0.6)
-                self.create_beep_sound('sounds/casino_ambiance.wav', frequency=150, duration=1.0, volume=0.1)
+                # Create more sophisticated casino sounds
+                self.create_wheel_spin_sound('sounds/wheel_spin.wav')
+                self.create_ball_launch_sound('sounds/ball_launch.wav')
+                self.create_ball_drop_sound('sounds/ball_drop.wav')
+                self.create_ball_settle_sound('sounds/ball_settle.wav')
+                self.create_casino_ambiance('sounds/casino_ambiance.wav')
 
                 # Reload the sounds after creating them
                 self.wheel_spin_sound = SoundLoader.load('sounds/wheel_spin.wav')
                 self.ball_launch_sound = SoundLoader.load('sounds/ball_launch.wav')
-                self.ball_drop_sound = SoundLoader.load('sounds/ball_drop.wav')
+
+                # Try to load the user's professional ball sound first
+                user_ball_sound = SoundLoader.load('sounds/a-roulette-ball-429831.mp3')
+                if user_ball_sound:
+                    self.ball_drop_sound = user_ball_sound
+                    print("Using professional ball sound effect!")
+                else:
+                    self.ball_drop_sound = SoundLoader.load('sounds/ball_drop.wav')
+
                 self.ball_settle_sound = SoundLoader.load('sounds/ball_settle.wav')
                 self.casino_ambiance = SoundLoader.load('sounds/casino_ambiance.wav')
 
-                print("Generated casino sound effects!")
-                return
+                if self.wheel_spin_sound and self.ball_launch_sound and self.ball_drop_sound and self.ball_settle_sound:
+                    print("Realistic casino sound effects generated successfully!")
+                    return
+                else:
+                    print("Sound generation failed, using system beeps...")
             except Exception as e:
                 print(f"Failed to generate WAV files: {e}")
 
         # Fallback: Create simple system beep functions
-        print("Using system beep sounds...")
+        print("Using system beep sounds as fallback...")
         self.create_beep_functions()
 
     def create_beep_sound(self, filename, frequency=440, duration=0.5, volume=0.5):
@@ -569,25 +600,161 @@ class RouletteGame(BoxLayout):
             for sample in samples:
                 wav_file.writeframes(struct.pack('<h', sample))
 
+    def create_wheel_spin_sound(self, filename):
+        """Create a realistic wheel spinning sound with mechanical whirring"""
+        sample_rate = 44100
+        duration = 3.0  # Longer for looping
+        num_samples = int(sample_rate * duration)
+
+        samples = []
+        for i in range(num_samples):
+            # Create a complex mechanical sound with multiple frequencies
+            t = i / sample_rate
+
+            # Base low frequency rumble
+            base_freq = 80 + 20 * math.sin(2 * math.pi * 0.5 * t)
+            base_wave = 0.3 * math.sin(2 * math.pi * base_freq * t)
+
+            # Higher frequency whirring that changes pitch
+            whir_freq = 200 + 50 * math.sin(2 * math.pi * 2 * t)
+            whir_wave = 0.2 * math.sin(2 * math.pi * whir_freq * t)
+
+            # Add some mechanical clicking/rumbling
+            click_freq = 1500 * (1 + 0.5 * math.sin(2 * math.pi * 3 * t))
+            click_wave = 0.1 * math.sin(2 * math.pi * click_freq * t) * math.exp(-t * 2)
+
+            # Combine waves with fade envelope
+            envelope = min(0.8, i / (sample_rate * 0.1))  # Quick fade in
+            envelope *= max(0.1, 1 - (i / num_samples) * 0.5)  # Slow fade out
+
+            sample = envelope * (base_wave + whir_wave + click_wave)
+            samples.append(int(sample * 32767))
+
+        # Write WAV file
+        with wave.open(filename, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for sample in samples:
+                wav_file.writeframes(struct.pack('<h', sample))
+
+    def create_ball_launch_sound(self, filename):
+        """Create a realistic ball launch sound - sharp mechanical click"""
+        sample_rate = 44100
+        duration = 0.15
+        num_samples = int(sample_rate * duration)
+
+        samples = []
+        for i in range(num_samples):
+            t = i / sample_rate
+
+            # Sharp attack with metallic ring
+            attack = math.exp(-t * 50)  # Quick decay
+            metallic = 0.7 * math.sin(2 * math.pi * 2500 * t) * attack
+            click = 0.3 * (1 if i < sample_rate * 0.01 else 0)  # Sharp click
+
+            sample = metallic + click
+            samples.append(int(sample * 32767))
+
+        with wave.open(filename, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for sample in samples:
+                wav_file.writeframes(struct.pack('<h', sample))
+
+    def create_ball_drop_sound(self, filename):
+        """Create a realistic ball drop sound - cascading metallic bounces"""
+        sample_rate = 44100
+        duration = 0.4
+        num_samples = int(sample_rate * duration)
+
+        samples = []
+        for i in range(num_samples):
+            t = i / sample_rate
+
+            # Multiple bouncing frequencies
+            bounce1 = 0.4 * math.sin(2 * math.pi * 800 * t) * math.exp(-t * 8)
+            bounce2 = 0.2 * math.sin(2 * math.pi * 1200 * t) * math.exp(-(t-0.1) * 12) if t > 0.1 else 0
+            bounce3 = 0.1 * math.sin(2 * math.pi * 600 * t) * math.exp(-(t-0.2) * 15) if t > 0.2 else 0
+
+            sample = bounce1 + bounce2 + bounce3
+            samples.append(int(sample * 32767))
+
+        with wave.open(filename, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for sample in samples:
+                wav_file.writeframes(struct.pack('<h', sample))
+
+    def create_ball_settle_sound(self, filename):
+        """Create a realistic ball settling sound - final metallic click"""
+        sample_rate = 44100
+        duration = 0.08
+        num_samples = int(sample_rate * duration)
+
+        samples = []
+        for i in range(num_samples):
+            t = i / sample_rate
+
+            # Sharp metallic ping with quick decay
+            ping = 0.8 * math.sin(2 * math.pi * 1800 * t) * math.exp(-t * 80)
+            undertone = 0.2 * math.sin(2 * math.pi * 900 * t) * math.exp(-t * 40)
+
+            sample = ping + undertone
+            samples.append(int(sample * 32767))
+
+        with wave.open(filename, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for sample in samples:
+                wav_file.writeframes(struct.pack('<h', sample))
+
+    def create_casino_ambiance(self, filename):
+        """Create subtle casino background ambiance"""
+        sample_rate = 44100
+        duration = 2.0
+        num_samples = int(sample_rate * duration)
+
+        samples = []
+        for i in range(num_samples):
+            t = i / sample_rate
+
+            # Subtle crowd murmur simulation
+            noise1 = 0.05 * math.sin(2 * math.pi * random.uniform(100, 200) * t)
+            noise2 = 0.03 * math.sin(2 * math.pi * random.uniform(150, 250) * t)
+
+            # Occasional chip sounds
+            chip_sound = 0.02 * math.sin(2 * math.pi * 800 * t) * math.exp(-(t % 0.5) * 20) if random.random() < 0.01 else 0
+
+            sample = (noise1 + noise2 + chip_sound) * 0.3
+            samples.append(int(sample * 32767))
+
+        with wave.open(filename, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for sample in samples:
+                wav_file.writeframes(struct.pack('<h', sample))
+
     def create_beep_functions(self):
         """Create beep functions using system sounds"""
         import platform
 
         def system_beep(frequency=800, duration=200):
-            """Play a system beep asynchronously"""
+            """Play a system beep"""
             try:
                 if platform.system() == 'Windows':
                     import winsound
-                    import threading
-                    # Play beep in a separate thread to avoid blocking
-                    threading.Thread(target=winsound.Beep, args=(frequency, duration), daemon=True).start()
+                    winsound.Beep(frequency, duration)
                 else:
-                    # For other systems, use a simple print (could be extended)
                     print(f"\\a")  # ASCII bell
-            except:
+            except Exception as e:
                 print(f"\\a")  # Fallback to ASCII bell
 
-        # Create mock sound objects
+        # Create mock sound objects with user's professional sound if available
         class MockSound:
             def __init__(self, play_func, loop=False):
                 self.play_func = play_func
@@ -599,11 +766,22 @@ class RouletteGame(BoxLayout):
             def stop(self):
                 pass
 
+        # Try to load the user's professional ball sound
+        user_ball_sound = SoundLoader.load('sounds/a-roulette-ball-429831.mp3')
+
         self.wheel_spin_sound = MockSound(lambda: system_beep(200, 1000), loop=True)
         self.ball_launch_sound = MockSound(lambda: system_beep(1000, 150))
-        self.ball_drop_sound = MockSound(lambda: system_beep(800, 200))
+
+        if user_ball_sound:
+            self.ball_drop_sound = user_ball_sound
+            print("Using professional ball sound effect!")
+        else:
+            self.ball_drop_sound = MockSound(lambda: system_beep(800, 200))
+
         self.ball_settle_sound = MockSound(lambda: system_beep(1200, 100))
         self.casino_ambiance = None  # No ambiance for system beeps
+
+        print("Sound system initialized")
     
     def create_ui(self):
         """Create casino-style game UI"""
@@ -644,16 +822,16 @@ class RouletteGame(BoxLayout):
                 self.result_label.text = 'SPINNING...'
                 self.result_label.color = (1, 1, 0.8, 1)  # Gold
 
-                # Play wheel spin sound
-                if self.wheel_spin_sound:
-                    self.wheel_spin_sound.play()
+                # Play ball sound immediately when spinning starts
+                if self.ball_drop_sound:
+                    self.ball_drop_sound.play()
             elif self.wheel.spinning and not self.wheel.ball_active:
                 # Launch ball if wheel is spinning but ball isn't active
                 self.wheel.launch_ball()
 
-                # Play ball launch sound
-                if self.ball_launch_sound:
-                    self.ball_launch_sound.play()
+                # Play ball launch sound (disabled - only using ball sound)
+                # if self.ball_launch_sound:
+                #     self.ball_launch_sound.play()
     
     def update(self, dt):
         """Update game loop"""
@@ -701,9 +879,9 @@ class RouletteApp(App):
         """Called when app starts"""
         print("Roulette game started!")
 
-        # Start casino ambiance
-        if hasattr(self, 'casino_ambiance') and self.casino_ambiance:
-            self.casino_ambiance.play()
+        # Start casino ambiance (disabled - only using ball sound)
+        # if hasattr(self, 'casino_ambiance') and self.casino_ambiance:
+        #     self.casino_ambiance.play()
     
     def on_pause(self):
         """Called when app is paused (mobile)"""

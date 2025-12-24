@@ -2,6 +2,26 @@
 
 This directory should contain the sound files for authentic casino roulette audio.
 
+## 🎵 Professional Sound Effects Available:
+
+**Recommended Source:** [Casino Roulette Sound Effects](https://www.youtube.com/watch?v=eNvV87Cbmi0)
+- High-quality casino audio from YouTube
+- Contains authentic roulette wheel sounds, ball rolling, and settling effects
+- Perfect for creating an immersive casino experience
+
+### How to Extract Sounds from YouTube:
+1. Use a YouTube video downloader (like `yt-dlp` or online converters)
+2. Download the video as MP4
+3. Extract audio using FFmpeg or online audio extractors:
+   ```bash
+   ffmpeg -i video.mp4 -vn -acodec pcm_s16le -ar 44100 -ac 2 output.wav
+   ```
+4. Edit the audio file to extract individual sound effects:
+   - Wheel spinning sound (continuous loop)
+   - Ball launch click
+   - Ball rolling/dropping sounds
+   - Final settling click
+
 ## Required Sound Files:
 
 ### `wheel_spin.wav`
@@ -40,7 +60,8 @@ This directory should contain the sound files for authentic casino roulette audi
 2. Ensure filenames match exactly as listed above
 3. The game will automatically load and play them at the appropriate times
 
-## Sound Sources:
-You can create these sounds yourself or find free casino sound effects online. Search for "casino roulette sounds" or "roulette wheel sounds" for authentic audio.
+## Current Status:
+✅ **Professional ball sound ONLY:** `a-roulette-ball-429831.mp3` - Plays when ball drops to numbers
+✅ **Clean audio setup:** All generated sounds removed, using only professional audio
 
-The game will work perfectly without sound files - they'll simply not play when triggered.
+**Note:** The game now uses only your professional ball sound effect for maximum authenticity!
