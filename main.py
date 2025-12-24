@@ -493,8 +493,8 @@ class RouletteGame(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        self.padding = 10
-        self.spacing = 10
+        self.padding = [10, 0, 10, 10]  # [left, top, right, bottom] - no top padding
+        self.spacing = 0  # Remove spacing between wheel and betting table
         
         # Game state (must be set before create_ui)
         self.balance = 1000
@@ -506,7 +506,13 @@ class RouletteGame(BoxLayout):
         # Create wheel
         self.wheel = RouletteWheel()
         self.wheel.game = self  # Give wheel reference to game for sound access
-        
+
+        # Initialize betting system
+        self.current_chip = 5
+        self.bets = {}
+        self.total_bet = 0
+        self.balance = 1000
+
         # Create UI
         self.create_ui()
         
@@ -785,24 +791,335 @@ class RouletteGame(BoxLayout):
     
     def create_ui(self):
         """Create casino-style game UI"""
-        # Set background color to casino green
-        with self.canvas.before:
-            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
-            Rectangle(pos=self.pos, size=self.size)
+        # Betting table at top with green background
+        betting_container_outer = BoxLayout(size_hint_y=0.4, orientation='vertical')
+        self.create_betting_table_in_container(betting_container_outer)
+        self.add_widget(betting_container_outer)
 
-        # Result display at top
-        result_container = BoxLayout(size_hint_y=0.15, padding=20)
-        self.result_label = Label(text='PRESS SPACE TO START', font_size=32,
-                                 color=(1, 1, 0.8, 1), bold=True,  # Bright gold
-                                 halign='center', valign='middle')
-        self.result_label.bind(size=self.result_label.setter('text_size'))
-        result_container.add_widget(self.result_label)
-        self.add_widget(result_container)
-
-        # Wheel container (takes up most of the screen)
-        wheel_container = BoxLayout(size_hint_y=0.85, padding=5)
+        # Wheel container at bottom - starting from (0,0) position
+        wheel_container = BoxLayout(size_hint_y=0.6, padding=0)  # Take 60% from bottom
         wheel_container.add_widget(self.wheel)
         self.add_widget(wheel_container)
+
+    def create_betting_table(self):
+        """Create the betting table interface"""
+        betting_container = BoxLayout(size_hint_y=0.4, orientation='vertical', spacing=3, padding=[3, 0, 3, 3])  # no top padding
+
+        # Set casino green background for betting table
+        with betting_container.canvas.before:
+            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
+            self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
+
+        # Bind the rectangle to update when container size changes
+        def update_bg(instance, value):
+            self.bg_rect.pos = instance.pos
+            self.bg_rect.size = instance.size
+
+        betting_container.bind(pos=update_bg, size=update_bg)
+
+        # Balance and bet display row
+        info_row = BoxLayout(size_hint_y=0.08, spacing=10)
+        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=12, color=(1,1,0.8,1),
+                                 halign='left', valign='middle')
+        self.balance_label.bind(size=self.balance_label.setter('text_size'))
+        info_row.add_widget(self.balance_label)
+
+        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=12, color=(1,0.8,1,1),
+                             halign='right', valign='middle')
+        self.bet_label.bind(size=self.bet_label.setter('text_size'))
+        info_row.add_widget(self.bet_label)
+
+        betting_container.add_widget(info_row)
+
+        # Chip selection row
+        chip_row = BoxLayout(size_hint_y=0.12, spacing=3)
+        chip_label = Label(text='CHIP:', font_size=12, color=(1,1,1,1), size_hint_x=0.15)
+        chip_row.add_widget(chip_label)
+
+        self.chip_buttons = []
+        chip_values = [1, 5, 10, 25, 50, 100]
+        for value in chip_values:
+            btn = Button(text=f'${value}', font_size=10, size_hint_x=1/len(chip_values),
+                        background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
+            btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
+            self.chip_buttons.append(btn)
+            chip_row.add_widget(btn)
+
+        betting_container.add_widget(chip_row)
+
+        # Outside bets row
+        outside_row = BoxLayout(size_hint_y=0.15, spacing=2)
+
+        # Red/Black
+        red_btn = Button(text='RED', font_size=10, background_color=(0.8, 0.1, 0.1, 1), color=(1,1,1,1))
+        red_btn.bind(on_press=lambda instance: self.place_bet('red'))
+        outside_row.add_widget(red_btn)
+
+        black_btn = Button(text='BLACK', font_size=10, background_color=(0.1, 0.1, 0.1, 1), color=(1,1,1,1))
+        black_btn.bind(on_press=lambda instance: self.place_bet('black'))
+        outside_row.add_widget(black_btn)
+
+        # Even/Odd
+        even_btn = Button(text='EVEN', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
+        even_btn.bind(on_press=lambda instance: self.place_bet('even'))
+        outside_row.add_widget(even_btn)
+
+        odd_btn = Button(text='ODD', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
+        odd_btn.bind(on_press=lambda instance: self.place_bet('odd'))
+        outside_row.add_widget(odd_btn)
+
+        # High/Low
+        low_btn = Button(text='1-18', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        low_btn.bind(on_press=lambda instance: self.place_bet('low'))
+        outside_row.add_widget(low_btn)
+
+        high_btn = Button(text='19-36', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        high_btn.bind(on_press=lambda instance: self.place_bet('high'))
+        outside_row.add_widget(high_btn)
+
+        betting_container.add_widget(outside_row)
+
+        # Dozens row
+        dozens_row = BoxLayout(size_hint_y=0.15, spacing=2)
+
+        doz1_btn = Button(text='1st 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz1_btn.bind(on_press=lambda instance: self.place_bet('dozen1'))
+        dozens_row.add_widget(doz1_btn)
+
+        doz2_btn = Button(text='2nd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
+        dozens_row.add_widget(doz2_btn)
+
+        doz3_btn = Button(text='3rd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz3_btn.bind(on_press=lambda instance: self.place_bet('dozen3'))
+        dozens_row.add_widget(doz3_btn)
+
+        zero_btn = Button(text='0', font_size=10, background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1))
+        zero_btn.bind(on_press=lambda instance: self.place_bet('zero'))
+        dozens_row.add_widget(zero_btn)
+
+        betting_container.add_widget(dozens_row)
+
+        # Number grid (simplified - just a few key numbers for demo)
+        numbers_row = BoxLayout(size_hint_y=0.15, spacing=1)
+        key_numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+        for num in key_numbers:
+            color = (0.8, 0.1, 0.1, 1) if num in self.wheel.RED_NUMBERS else (0.1, 0.1, 0.1, 1)
+            num_btn = Button(text=str(num), font_size=8, background_color=color, color=(1,1,1,1),
+                           size_hint_x=1/len(key_numbers))
+            num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
+            numbers_row.add_widget(num_btn)
+
+        betting_container.add_widget(numbers_row)
+
+        # Control buttons row
+        control_row = BoxLayout(size_hint_y=0.2, spacing=5)
+
+        clear_btn = Button(text='CLEAR', font_size=12, background_color=(0.6, 0.2, 0.2, 1), color=(1,1,1,1))
+        clear_btn.bind(on_press=self.clear_bets)
+        control_row.add_widget(clear_btn)
+
+        spin_btn = Button(text='SPIN', font_size=14, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1), bold=True)
+        spin_btn.bind(on_press=self.spin_wheel)
+        control_row.add_widget(spin_btn)
+
+        betting_container.add_widget(control_row)
+
+        self.add_widget(betting_container)
+
+        # Update chip button colors to show selection
+        self.update_chip_buttons()
+
+    def create_betting_table_in_container(self, container):
+        """Create the betting table interface inside a container"""
+        betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=3, padding=[3, 0, 3, 3])  # no top padding
+
+        # Set casino green background for betting table
+        with betting_container.canvas.before:
+            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
+            self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
+
+        # Bind the rectangle to update when container size changes
+        def update_bg(instance, value):
+            self.bg_rect.pos = instance.pos
+            self.bg_rect.size = instance.size
+
+        betting_container.bind(pos=update_bg, size=update_bg)
+
+        # Balance and bet display row
+        info_row = BoxLayout(size_hint_y=0.08, spacing=10)
+        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=12, color=(1,1,0.8,1),
+                                 halign='left', valign='middle')
+        self.balance_label.bind(size=self.balance_label.setter('text_size'))
+        info_row.add_widget(self.balance_label)
+
+        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=12, color=(1,0.8,1,1),
+                             halign='right', valign='middle')
+        self.bet_label.bind(size=self.bet_label.setter('text_size'))
+        info_row.add_widget(self.bet_label)
+
+        betting_container.add_widget(info_row)
+
+        # Chip selection row
+        chip_row = BoxLayout(size_hint_y=0.12, spacing=3)
+        chip_label = Label(text='CHIP:', font_size=12, color=(1,1,1,1), size_hint_x=0.15)
+        chip_row.add_widget(chip_label)
+
+        self.chip_buttons = []
+        chip_values = [1, 5, 10, 25, 50, 100]
+        for value in chip_values:
+            btn = Button(text=f'${value}', font_size=10, size_hint_x=1/len(chip_values),
+                        background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
+            btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
+            self.chip_buttons.append(btn)
+            chip_row.add_widget(btn)
+
+        betting_container.add_widget(chip_row)
+
+        # Outside bets row
+        outside_row = BoxLayout(size_hint_y=0.15, spacing=2)
+
+        # Red/Black
+        red_btn = Button(text='RED', font_size=10, background_color=(0.8, 0.1, 0.1, 1), color=(1,1,1,1))
+        red_btn.bind(on_press=lambda instance: self.place_bet('red'))
+        outside_row.add_widget(red_btn)
+
+        black_btn = Button(text='BLACK', font_size=10, background_color=(0.1, 0.1, 0.1, 1), color=(1,1,1,1))
+        black_btn.bind(on_press=lambda instance: self.place_bet('black'))
+        outside_row.add_widget(black_btn)
+
+        # Even/Odd
+        even_btn = Button(text='EVEN', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
+        even_btn.bind(on_press=lambda instance: self.place_bet('even'))
+        outside_row.add_widget(even_btn)
+
+        odd_btn = Button(text='ODD', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
+        odd_btn.bind(on_press=lambda instance: self.place_bet('odd'))
+        outside_row.add_widget(odd_btn)
+
+        # High/Low
+        low_btn = Button(text='1-18', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        low_btn.bind(on_press=lambda instance: self.place_bet('low'))
+        outside_row.add_widget(low_btn)
+
+        high_btn = Button(text='19-36', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        high_btn.bind(on_press=lambda instance: self.place_bet('high'))
+        outside_row.add_widget(high_btn)
+
+        betting_container.add_widget(outside_row)
+
+        # Dozens row
+        dozens_row = BoxLayout(size_hint_y=0.15, spacing=2)
+
+        doz1_btn = Button(text='1st 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz1_btn.bind(on_press=lambda instance: self.place_bet('dozen1'))
+        dozens_row.add_widget(doz1_btn)
+
+        doz2_btn = Button(text='2nd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
+        dozens_row.add_widget(doz2_btn)
+
+        doz3_btn = Button(text='3rd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz3_btn.bind(on_press=lambda instance: self.place_bet('dozen3'))
+        dozens_row.add_widget(doz3_btn)
+
+        zero_btn = Button(text='0', font_size=10, background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1))
+        zero_btn.bind(on_press=lambda instance: self.place_bet('zero'))
+        dozens_row.add_widget(zero_btn)
+
+        betting_container.add_widget(dozens_row)
+
+        # Number grid (simplified - just a few key numbers for demo)
+        numbers_row = BoxLayout(size_hint_y=0.15, spacing=1)
+        key_numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+        for num in key_numbers:
+            color = (0.8, 0.1, 0.1, 1) if num in self.wheel.RED_NUMBERS else (0.1, 0.1, 0.1, 1)
+            num_btn = Button(text=str(num), font_size=8, background_color=color, color=(1,1,1,1),
+                           size_hint_x=1/len(key_numbers))
+            num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
+            numbers_row.add_widget(num_btn)
+
+        betting_container.add_widget(numbers_row)
+
+        # Control buttons row
+        control_row = BoxLayout(size_hint_y=0.2, spacing=5)
+
+        clear_btn = Button(text='CLEAR', font_size=12, background_color=(0.6, 0.2, 0.2, 1), color=(1,1,1,1))
+        clear_btn.bind(on_press=self.clear_bets)
+        control_row.add_widget(clear_btn)
+
+        spin_btn = Button(text='SPIN', font_size=14, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1), bold=True)
+        spin_btn.bind(on_press=self.spin_wheel)
+        control_row.add_widget(spin_btn)
+
+        betting_container.add_widget(control_row)
+
+        container.add_widget(betting_container)
+
+        # Update chip button colors to show selection
+        self.update_chip_buttons()
+
+    def select_chip(self, value):
+        """Select chip value for betting"""
+        self.current_chip = value
+        self.update_chip_buttons()
+        print(f"Selected chip: ${value}")
+
+    def update_chip_buttons(self):
+        """Update chip button colors to show selected chip"""
+        for i, btn in enumerate(self.chip_buttons):
+            value = [1, 5, 10, 25, 50, 100][i]
+            if value == self.current_chip:
+                btn.background_color = (1.0, 0.8, 0.0, 1)  # Gold for selected
+            else:
+                btn.background_color = (0.8, 0.6, 0.2, 1)  # Brown for unselected
+
+    def place_bet(self, bet_type):
+        """Place a bet on the specified type"""
+        if self.balance >= self.current_chip:
+            if bet_type not in self.bets:
+                self.bets[bet_type] = 0
+            self.bets[bet_type] += self.current_chip
+            self.total_bet += self.current_chip
+            self.balance -= self.current_chip
+            self.update_display()
+            print(f"Placed ${self.current_chip} on {bet_type}. Total bet: ${self.total_bet}, Balance: ${self.balance}")
+        else:
+            print("Insufficient balance!")
+
+    def clear_bets(self, instance=None):
+        """Clear all bets"""
+        # Refund bets to balance
+        self.balance += self.total_bet
+        self.bets = {}
+        self.total_bet = 0
+        self.update_display()
+        print("Bets cleared")
+
+    def update_display(self):
+        """Update balance and bet displays"""
+        self.balance_label.text = f'BALANCE: ${self.balance}'
+        self.bet_label.text = f'TOTAL BET: ${self.total_bet}'
+
+    def spin_wheel(self, instance=None):
+        """Handle spin button - only spin if there are bets"""
+        if self.total_bet > 0:
+            if not self.wheel.spinning and not self.wheel.ball_active:
+                # Start the sequence: spin wheel and launch ball
+                self.wheel.start_spin()
+                self.wheel.launch_ball()
+
+                # Play ball sound immediately when spinning starts
+                if self.ball_drop_sound:
+                    self.ball_drop_sound.play()
+
+                print(f"Spinning with ${self.total_bet} in bets!")
+            else:
+                print("Wheel is already spinning!")
+        else:
+            print("Place some bets first!")
     
     def on_spin(self, instance):
         """Handle spin button press"""
@@ -819,8 +1136,6 @@ class RouletteGame(BoxLayout):
                 # Start the sequence: spin wheel and launch ball
                 self.wheel.start_spin()
                 self.wheel.launch_ball()
-                self.result_label.text = 'SPINNING...'
-                self.result_label.color = (1, 1, 0.8, 1)  # Gold
 
                 # Play ball sound immediately when spinning starts
                 if self.ball_drop_sound:
@@ -828,39 +1143,64 @@ class RouletteGame(BoxLayout):
             elif self.wheel.spinning and not self.wheel.ball_active:
                 # Launch ball if wheel is spinning but ball isn't active
                 self.wheel.launch_ball()
-
-                # Play ball launch sound (disabled - only using ball sound)
-                # if self.ball_launch_sound:
-                #     self.ball_launch_sound.play()
     
     def update(self, dt):
         """Update game loop"""
         self.wheel.update(dt)
 
-        # Update result display
-        if self.wheel.winning_number is not None and self.wheel.winning_number != self.last_win:
+        # Check for spin completion and handle payouts
+        if not self.wheel.spinning and self.wheel.winning_number is not None and self.wheel.winning_number != self.last_win:
             self.last_win = self.wheel.winning_number
-            color = self.wheel.get_pocket_color(self.last_win)
-            color_name = "GREEN" if self.last_win == 0 else ("RED" if self.last_win in self.wheel.RED_NUMBERS else "BLACK")
+            self.process_payouts()
+            print(f"Winning number: {self.wheel.winning_number}")
 
-            # Update result label prominently
-            self.result_label.text = f'WINNING NUMBER: {self.last_win} ({color_name})'
-            # Set text color based on pocket color
-            if self.last_win == 0:
-                self.result_label.color = (0.3, 1.0, 0.3, 1)  # Bright green
-            elif self.last_win in self.wheel.RED_NUMBERS:
-                self.result_label.color = (1.0, 0.3, 0.3, 1)  # Bright red
-            else:
-                self.result_label.color = (0.9, 0.9, 0.9, 1)  # Light gray/white
-        elif self.wheel.spinning or self.wheel.ball_active:
-            # Show spinning status
-            if self.wheel.ball_on_bumper:
-                rotations = int(self.wheel.ball_rotations)
-                self.result_label.text = f'BALL SPINNING... {rotations} ROTATIONS'
-                self.result_label.color = (1, 1, 0.8, 1)  # Gold
-            else:
-                self.result_label.text = 'BALL ON NUMBERS...'
-                self.result_label.color = (1, 1, 0.8, 1)  # Gold
+    def process_payouts(self):
+        """Process betting payouts based on winning number"""
+        win_number = self.wheel.winning_number
+        total_payout = 0
+
+        for bet_type, amount in self.bets.items():
+            payout = 0
+
+            if bet_type == 'red' and win_number in self.wheel.RED_NUMBERS:
+                payout = amount * 2
+            elif bet_type == 'black' and win_number not in self.wheel.RED_NUMBERS and win_number != 0:
+                payout = amount * 2
+            elif bet_type == 'even' and win_number != 0 and win_number % 2 == 0:
+                payout = amount * 2
+            elif bet_type == 'odd' and win_number != 0 and win_number % 2 == 1:
+                payout = amount * 2
+            elif bet_type == 'low' and win_number >= 1 and win_number <= 18:
+                payout = amount * 2
+            elif bet_type == 'high' and win_number >= 19 and win_number <= 36:
+                payout = amount * 2
+            elif bet_type == 'dozen1' and win_number >= 1 and win_number <= 12:
+                payout = amount * 3
+            elif bet_type == 'dozen2' and win_number >= 13 and win_number <= 24:
+                payout = amount * 3
+            elif bet_type == 'dozen3' and win_number >= 25 and win_number <= 36:
+                payout = amount * 3
+            elif bet_type == 'zero' and win_number == 0:
+                payout = amount * 36  # House edge makes this payout high
+            elif bet_type.startswith('number_'):
+                bet_num = int(bet_type.split('_')[1])
+                if win_number == bet_num:
+                    payout = amount * 36
+
+            if payout > 0:
+                total_payout += payout
+                print(f"WIN! {bet_type}: bet ${amount}, payout ${payout}")
+
+        if total_payout > 0:
+            self.balance += total_payout
+            print(f"Total payout: ${total_payout}, New balance: ${self.balance}")
+        else:
+            print("No winning bets this round")
+
+        # Clear bets after payout
+        self.bets = {}
+        self.total_bet = 0
+        self.update_display()
 
 
 class RouletteApp(App):
@@ -869,7 +1209,7 @@ class RouletteApp(App):
     def build(self):
         # Set window size for mobile (can be fullscreen on actual device)
         Window.size = (450, 700)  # Portrait mode for mobile - larger for better visibility
-        Window.clearcolor = (0.05, 0.25, 0.1, 1)  # Casino green background
+        Window.clearcolor = (0.0, 0.0, 0.0, 1)  # Black background for wheel area
         
         # Create game
         game = RouletteGame()
