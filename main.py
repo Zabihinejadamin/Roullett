@@ -248,8 +248,13 @@ class RouletteWheel(Widget):
         
         num_pockets = len(self.NUMBERS)
         
-        # Draw casino green felt background with texture
+        # Draw casino green felt background with texture and 3D depth
         with self.canvas:
+            # Wheel shadow for 3D depth
+            Color(0, 0, 0, 0.3)  # Dark shadow
+            Ellipse(pos=(center_x - radius - 8, center_y - radius - 8),
+                   size=(radius * 2 + 16, radius * 2 + 16))
+
             # Base felt color
             Color(0.05, 0.25, 0.1, 1)  # Casino green felt
             Rectangle(pos=(0, 0), size=(self.width, self.height))
@@ -296,65 +301,134 @@ class RouletteWheel(Widget):
             Color(0.5, 0.35, 0.15, 1)  # Lighter wood
             Line(rectangle=(4, 4, self.width-8, self.height-8), width=2)
 
-        # Draw outer bumper track (raised margin) with wood grain
+        # Draw outer bumper track (raised margin) with wood grain and 3D depth
         with self.canvas:
-            # Bumper track base (dark mahogany wood)
-            Color(0.15, 0.08, 0.04, 1)  # Deep mahogany
+            # Bumper track shadow for depth
+            Color(0, 0, 0, 0.4)  # Shadow
+            Ellipse(pos=(center_x - bumper_outer + 3, center_y - bumper_outer + 3),
+                   size=(bumper_outer * 2, bumper_outer * 2))
+
+            # Bumper track base (dark mahogany wood) - raised effect
+            Color(0.12, 0.06, 0.03, 1)  # Even deeper mahogany for base
             Ellipse(pos=(center_x - bumper_outer, center_y - bumper_outer),
                    size=(bumper_outer * 2, bumper_outer * 2))
 
-            # Wood grain layers for texture
+            # Main bumper surface
+            Color(0.15, 0.08, 0.04, 1)  # Deep mahogany
+            Ellipse(pos=(center_x - bumper_outer + 1, center_y - bumper_outer + 1),
+                   size=(bumper_outer * 2 - 2, bumper_outer * 2 - 2))
+
+            # Wood grain layers for texture with depth
             Color(0.25, 0.12, 0.06, 1)  # Medium mahogany
             Line(circle=(center_x, center_y, bumper_outer), width=6)
             Line(circle=(center_x, center_y, bumper_inner + 2), width=4)
 
-            # Wood highlights
-            Color(0.35, 0.18, 0.08, 1)  # Lighter mahogany
+            # Inner shadow for depth
+            Color(0.1, 0.05, 0.02, 0.8)  # Dark inner shadow
+            Ellipse(pos=(center_x - bumper_inner - 2, center_y - bumper_inner - 2),
+                   size=(bumper_inner * 2 + 4, bumper_inner * 2 + 4))
+
+            # Wood highlights for raised effect
+            Color(0.35, 0.18, 0.08, 1)  # Lighter mahogany highlights
             Line(circle=(center_x, center_y, bumper_outer - 1), width=2)
             Line(circle=(center_x, center_y, bumper_inner + 1), width=2)
 
-            # Metallic rim
+            # Top highlight for 3D effect
+            Color(0.45, 0.25, 0.12, 0.6)  # Bright highlight
+            Ellipse(pos=(center_x - bumper_outer + 2, center_y - bumper_outer + 2),
+                   size=(bumper_outer * 1.8, bumper_outer * 1.8))
+
+            # Metallic rim with depth
             Color(0.6, 0.5, 0.3, 1)  # Antique brass
             Line(circle=(center_x, center_y, bumper_outer), width=1)
             Line(circle=(center_x, center_y, bumper_inner), width=1)
 
-        # Draw outer wheel rim (polished mahogany wood)
+            # Rim highlight
+            Color(0.8, 0.7, 0.4, 0.8)  # Bright brass highlight
+            Line(circle=(center_x, center_y, bumper_outer - 0.5), width=0.5)
+
+        # Draw outer wheel rim (polished mahogany wood) with 3D depth
         with self.canvas:
-            # Base wood layer
-            Color(0.22, 0.12, 0.06, 1)  # Rich mahogany base
+            # Wheel rim shadow for depth
+            Color(0, 0, 0, 0.5)  # Dark shadow
+            Ellipse(pos=(center_x - radius + 4, center_y - radius + 4),
+                   size=(radius * 2, radius * 2))
+
+            # Base wood layer - recessed effect
+            Color(0.18, 0.09, 0.04, 1)  # Darker mahogany base
             Ellipse(pos=(center_x - radius, center_y - radius),
                    size=(radius * 2, radius * 2))
 
-            # Wood grain rings for texture
+            # Main wood surface - raised
+            Color(0.22, 0.12, 0.06, 1)  # Rich mahogany
+            Ellipse(pos=(center_x - radius + 2, center_y - radius + 2),
+                   size=(radius * 2 - 4, radius * 2 - 4))
+
+            # Wood grain rings for texture with depth
             Color(0.28, 0.16, 0.08, 1)  # Medium mahogany
             Line(circle=(center_x, center_y, radius), width=4)
             Line(circle=(center_x, center_y, radius * 0.95), width=3)
 
-            # Wood highlights and grain
-            Color(0.38, 0.22, 0.10, 1)  # Light mahogany
+            # Inner shadow for depth
+            Color(0.15, 0.08, 0.04, 0.7)  # Inner shadow
+            Ellipse(pos=(center_x - pocket_outer - 2, center_y - pocket_outer - 2),
+                   size=(pocket_outer * 2 + 4, pocket_outer * 2 + 4))
+
+            # Wood highlights and grain for raised effect
+            Color(0.38, 0.22, 0.10, 1)  # Light mahogany highlights
             Line(circle=(center_x, center_y, radius - 1), width=2)
             Line(circle=(center_x, center_y, radius * 0.96), width=1)
 
-            # Polished wood shine
+            # Polished wood shine with 3D effect
             Color(0.5, 0.3, 0.15, 0.8)  # Warm highlight
             Line(circle=(center_x, center_y, radius - 0.5), width=1)
+
+            # Top surface highlight for 3D raised effect
+            Color(0.6, 0.4, 0.2, 0.4)  # Bright surface highlight
+            Ellipse(pos=(center_x - radius + 3, center_y - radius + 3),
+                   size=(radius * 1.5, radius * 1.5))
         
-        # Draw inner center circle with wood inlay
+        # Draw inner center circle with wood inlay and 3D depth
         with self.canvas:
-            # Dark wood center
-            Color(0.18, 0.09, 0.05, 1)  # Very dark mahogany
+            # Center hub shadow for depth
+            Color(0, 0, 0, 0.6)  # Deep shadow
+            Ellipse(pos=(center_x - inner_radius + 3, center_y - inner_radius + 3),
+                   size=(inner_radius * 2, inner_radius * 2))
+
+            # Dark wood center - recessed
+            Color(0.12, 0.06, 0.03, 1)  # Very dark mahogany base
             Ellipse(pos=(center_x - inner_radius, center_y - inner_radius),
                    size=(inner_radius * 2, inner_radius * 2))
 
-            # Decorative wood inlay
-            Color(0.3, 0.15, 0.07, 1)  # Medium dark mahogany
+            # Main center surface - raised
+            Color(0.18, 0.09, 0.05, 1)  # Very dark mahogany
+            Ellipse(pos=(center_x - inner_radius + 1, center_y - inner_radius + 1),
+                   size=(inner_radius * 2 - 2, inner_radius * 2 - 2))
+
+            # Decorative wood inlay with depth
+            Color(0.25, 0.12, 0.06, 1)  # Medium mahogany for inlay base
             Line(circle=(center_x, center_y, inner_radius), width=2)
             Line(circle=(center_x, center_y, inner_radius * 0.8), width=2)
 
-            # Center hub detail
-            Color(0.4, 0.2, 0.08, 1)  # Lighter wood
+            # Inlay highlights
+            Color(0.35, 0.18, 0.08, 0.8)  # Light mahogany highlights
+            Line(circle=(center_x, center_y, inner_radius - 0.5), width=1)
+            Line(circle=(center_x, center_y, inner_radius * 0.8 - 0.5), width=1)
+
+            # Center hub detail - deeply recessed
+            Color(0.08, 0.04, 0.02, 1)  # Very dark hub base
             Ellipse(pos=(center_x - inner_radius * 0.3, center_y - inner_radius * 0.3),
                    size=(inner_radius * 0.6, inner_radius * 0.6))
+
+            # Hub surface
+            Color(0.4, 0.2, 0.08, 1)  # Lighter wood hub
+            Ellipse(pos=(center_x - inner_radius * 0.25, center_y - inner_radius * 0.25),
+                   size=(inner_radius * 0.5, inner_radius * 0.5))
+
+            # Hub highlight for 3D effect
+            Color(0.6, 0.35, 0.15, 0.6)  # Bright hub highlight
+            Ellipse(pos=(center_x - inner_radius * 0.2, center_y - inner_radius * 0.2),
+                   size=(inner_radius * 0.3, inner_radius * 0.3))
         
         # Draw pockets with rotation
         with self.canvas:
@@ -369,27 +443,70 @@ class RouletteWheel(Widget):
                 # Get pocket color
                 color = self.get_pocket_color(number)
                 
-                # Draw pocket filled segment using multiple small rectangles
-                Color(*color, 0.95)
-                # Draw pocket as filled arc using multiple segments
+                # Draw pocket depth effects
+                # Pocket shadow for depth
+                Color(0, 0, 0, 0.3)  # Subtle shadow
                 segments = 12
                 for j in range(segments):
                     a1 = angle_start + (angle_end - angle_start) * (j / segments)
                     a2 = angle_start + (angle_end - angle_start) * ((j + 1) / segments)
-                    
+
+                    # Shadow points (slightly offset)
+                    x1_outer_shadow = center_x + math.cos(a1) * (pocket_outer + 1) + 1
+                    y1_outer_shadow = center_y + math.sin(a1) * (pocket_outer + 1) + 1
+                    x2_outer_shadow = center_x + math.cos(a2) * (pocket_outer + 1) + 1
+                    y2_outer_shadow = center_y + math.sin(a2) * (pocket_outer + 1) + 1
+
+                    x1_inner_shadow = center_x + math.cos(a1) * (pocket_inner + 1) + 1
+                    y1_inner_shadow = center_y + math.sin(a1) * (pocket_inner + 1) + 1
+                    x2_inner_shadow = center_x + math.cos(a2) * (pocket_inner + 1) + 1
+                    y2_inner_shadow = center_y + math.sin(a2) * (pocket_inner + 1) + 1
+
+                    Triangle(points=[x1_outer_shadow, y1_outer_shadow, x2_outer_shadow, y2_outer_shadow, x1_inner_shadow, y1_inner_shadow])
+                    Triangle(points=[x2_outer_shadow, y2_outer_shadow, x2_inner_shadow, y2_inner_shadow, x1_inner_shadow, y1_inner_shadow])
+
+                # Draw pocket filled segment using multiple small rectangles with depth
+                # Base pocket color (slightly darker for depth)
+                base_color = [max(0, c * 0.8) for c in color]
+                Color(*base_color, 0.95)
+                for j in range(segments):
+                    a1 = angle_start + (angle_end - angle_start) * (j / segments)
+                    a2 = angle_start + (angle_end - angle_start) * ((j + 1) / segments)
+
                     # Outer points
                     x1_outer = center_x + math.cos(a1) * pocket_outer
                     y1_outer = center_y + math.sin(a1) * pocket_outer
                     x2_outer = center_x + math.cos(a2) * pocket_outer
                     y2_outer = center_y + math.sin(a2) * pocket_outer
-                    
+
                     # Inner points
                     x1_inner = center_x + math.cos(a1) * pocket_inner
                     y1_inner = center_y + math.sin(a1) * pocket_inner
                     x2_inner = center_x + math.cos(a2) * pocket_inner
                     y2_inner = center_y + math.sin(a2) * pocket_inner
-                    
+
                     # Draw as quad using two triangles
+                    Triangle(points=[x1_outer, y1_outer, x2_outer, y2_outer, x1_inner, y1_inner])
+                    Triangle(points=[x2_outer, y2_outer, x2_inner, y2_inner, x1_inner, y1_inner])
+
+                # Main pocket surface with slight highlight
+                Color(*color, 0.98)
+                for j in range(segments):
+                    a1 = angle_start + (angle_end - angle_start) * (j / segments)
+                    a2 = angle_start + (angle_end - angle_start) * ((j + 1) / segments)
+
+                    # Slightly inset surface for raised effect
+                    inset_factor = 0.97
+                    x1_outer = center_x + math.cos(a1) * (pocket_outer * inset_factor)
+                    y1_outer = center_y + math.sin(a1) * (pocket_outer * inset_factor)
+                    x2_outer = center_x + math.cos(a2) * (pocket_outer * inset_factor)
+                    y2_outer = center_y + math.sin(a2) * (pocket_outer * inset_factor)
+
+                    x1_inner = center_x + math.cos(a1) * (pocket_inner * inset_factor)
+                    y1_inner = center_y + math.sin(a1) * (pocket_inner * inset_factor)
+                    x2_inner = center_x + math.cos(a2) * (pocket_inner * inset_factor)
+                    y2_inner = center_y + math.sin(a2) * (pocket_inner * inset_factor)
+
                     Triangle(points=[x1_outer, y1_outer, x2_outer, y2_outer, x1_inner, y1_inner])
                     Triangle(points=[x2_outer, y2_outer, x2_inner, y2_inner, x1_inner, y1_inner])
                 
@@ -505,45 +622,72 @@ class RouletteWheel(Widget):
                 Ellipse(pos=(ball_x - ball_size/4, ball_y + ball_size/6),
                        size=(ball_size/4, ball_size/4))
         
-        # Draw center marker (metallic pointer)
+        # Draw center marker (metallic pointer) with 3D depth
         with self.canvas:
             pointer_size = 22
 
-            # Pointer shadow
-            Color(0, 0, 0, 0.4)
+            # Enhanced pointer shadow for depth
+            Color(0, 0, 0, 0.6)  # Darker shadow
             shadow_points = [
+                center_x, center_y + inner_radius + 8,
+                center_x - pointer_size/2 + 2, center_y + inner_radius - 7,
+                center_x + pointer_size/2 + 2, center_y + inner_radius - 7
+            ]
+            Triangle(points=shadow_points)
+
+            # Pointer base shadow
+            Color(0, 0, 0, 0.4)
+            base_shadow_points = [
                 center_x, center_y + inner_radius + 6,
                 center_x - pointer_size/2 + 1, center_y + inner_radius - 9,
                 center_x + pointer_size/2 + 1, center_y + inner_radius - 9
             ]
-            Triangle(points=shadow_points)
+            Triangle(points=base_shadow_points)
 
-            # Main pointer body (brass/metal)
-            Color(0.8, 0.6, 0.2, 1)  # Antique brass
-            pointer_points = [
+            # Main pointer body (brass/metal) - raised effect
+            Color(0.7, 0.5, 0.15, 1)  # Darker brass base
+            pointer_base_points = [
                 center_x, center_y + inner_radius + 5,
                 center_x - pointer_size/2, center_y + inner_radius - 10,
                 center_x + pointer_size/2, center_y + inner_radius - 10
             ]
+            Triangle(points=pointer_base_points)
+
+            # Main pointer surface
+            Color(0.8, 0.6, 0.2, 1)  # Antique brass
+            pointer_points = [
+                center_x, center_y + inner_radius + 4,
+                center_x - pointer_size/2 + 1, center_y + inner_radius - 8,
+                center_x + pointer_size/2 + 1, center_y + inner_radius - 8
+            ]
             Triangle(points=pointer_points)
 
-            # Metallic highlight
+            # Metallic highlight with depth
             Color(0.95, 0.8, 0.3, 1)  # Bright brass highlight
             highlight_points = [
-                center_x, center_y + inner_radius + 4,
-                center_x - pointer_size/4, center_y + inner_radius - 5,
-                center_x + pointer_size/4, center_y + inner_radius - 5
+                center_x, center_y + inner_radius + 3,
+                center_x - pointer_size/4, center_y + inner_radius - 4,
+                center_x + pointer_size/4, center_y + inner_radius - 4
             ]
             Triangle(points=highlight_points)
 
-            # Pointer tip accent
+            # Pointer tip accent with 3D effect
             Color(1.0, 0.9, 0.1, 1)  # Gold tip
             tip_points = [
-                center_x, center_y + inner_radius + 3,
-                center_x - pointer_size/6, center_y + inner_radius - 2,
-                center_x + pointer_size/6, center_y + inner_radius - 2
+                center_x, center_y + inner_radius + 2,
+                center_x - pointer_size/6, center_y + inner_radius - 1,
+                center_x + pointer_size/6, center_y + inner_radius - 1
             ]
             Triangle(points=tip_points)
+
+            # Bright tip highlight
+            Color(1.0, 1.0, 0.5, 0.8)  # Very bright tip
+            bright_tip_points = [
+                center_x, center_y + inner_radius + 1.5,
+                center_x - pointer_size/8, center_y + inner_radius - 0.5,
+                center_x + pointer_size/8, center_y + inner_radius - 0.5
+            ]
+            Triangle(points=bright_tip_points)
 
 
 
@@ -645,10 +789,10 @@ class RouletteGame(BoxLayout):
 
 
     def load_sounds(self):
-        """Load casino sound effects - only using professional ball sound"""
+        """Load casino sound effects - professional ball sound and coin drop sound"""
         print("Loading professional casino sound...")
 
-        # Only load the user's professional sound file
+        # Load the professional ball sound
         professional_sound = SoundLoader.load('sounds/a-roulette-ball-429831.mp3')
         if professional_sound:
             # Use the professional sound for ball drop effect
@@ -658,10 +802,19 @@ class RouletteGame(BoxLayout):
             print("Professional sound file not found, no sound will play.")
             self.ball_drop_sound = None
 
+        # Load the coin drop sound for betting
+        coin_sound = SoundLoader.load('sounds/coin-dropped.mp3')
+        if coin_sound:
+            self.coin_drop_sound = coin_sound
+            print("Coin drop sound loaded successfully!")
+        else:
+            print("Coin drop sound file not found.")
+            self.coin_drop_sound = None
+
         # Create winning sound programmatically
         self.create_winning_sound()
 
-        # Don't use any other sounds - only the professional ball sound and win sound
+        # Don't use any other sounds - only the professional ball sound, win sound, and coin sound
         self.wheel_spin_sound = None
         self.ball_launch_sound = None
         self.ball_settle_sound = None
@@ -1358,6 +1511,11 @@ class RouletteGame(BoxLayout):
             self.bets[bet_type] += self.current_chip
             self.total_bet += self.current_chip
             self.balance -= self.current_chip
+
+            # Play coin drop sound when placing a bet
+            if self.coin_drop_sound:
+                self.coin_drop_sound.play()
+
             self.update_display()
             self.update_betting_buttons()
             print(f"Placed ${self.current_chip} on {bet_type}. Total bet: ${self.total_bet}, Balance: ${self.balance}")
