@@ -268,7 +268,7 @@ class RouletteWheel(Widget):
                 line_height = 40  # Space between numbers
 
                 for i, texture_data in enumerate(self.previous_numbers_textures):
-                    # White background for each number - clearly visible on green felt
+                    # White background for each number
                     Color(1, 1, 1, 1.0)  # White background
                     bg_x = start_x - 15
                     # Most recent number (i=0) at bottom (y=0), older numbers above it
@@ -284,6 +284,8 @@ class RouletteWheel(Widget):
                     # Most recent number (i=0) at bottom (y=0), older numbers above it
                     num_y = i * line_height
                     if texture_data['texture']:
+                        # Ensure proper blending for colored text
+                        Color(1, 1, 1, 1)  # White tint to preserve original colors
                         Rectangle(texture=texture_data['texture'], pos=(num_x, num_y), size=texture_data['texture'].size)
 
             # Table border
@@ -565,11 +567,11 @@ class RouletteWheel(Widget):
             recent_numbers.reverse()  # Most recent first
 
             for number in recent_numbers:
-                # Determine text color
+                # Determine text color based on roulette rules
                 if number == 0:
-                    text_color = (0, 0.8, 0, 1)  # Green for zero
-                elif number in self.RED_NUMBERS:
-                    text_color = (0.8, 0, 0, 1)  # Red for red numbers
+                    text_color = (0, 1, 0, 1)  # Bright green for zero
+                elif number in RouletteWheel.RED_NUMBERS:
+                    text_color = (1, 0, 0, 1)  # Bright red for red numbers
                 else:
                     text_color = (0, 0, 0, 1)  # Black for black numbers
 
@@ -1097,7 +1099,7 @@ class RouletteGame(BoxLayout):
 
         for num in key_numbers:
             color = (0.8, 0.1, 0.1, 1) if num in self.wheel.RED_NUMBERS else (0.1, 0.1, 0.1, 1)
-            num_btn = Button(text=str(num), font_size=8, background_color=color, color=(1,1,1,1),
+            num_btn = Button(text=str(num), font_size=16, background_color=color, color=(1,1,1,1),
                            size_hint_x=1/len(key_numbers))
             num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
             numbers_row.add_widget(num_btn)
