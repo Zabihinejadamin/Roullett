@@ -6,12 +6,13 @@ A beautiful 2D European roulette simulation for Android and iOS using Kivy.
 
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Ellipse, Line, Rectangle, PushMatrix, PopMatrix, Rotate, Triangle
+from kivy.graphics import Color, Ellipse, Line, Rectangle, PushMatrix, PopMatrix, Rotate, Triangle, InstructionGroup
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
 from kivy.core.text import Label as CoreLabel
 from kivy.core.audio import SoundLoader
 import math
@@ -53,7 +54,37 @@ class RouletteWheel(Widget):
         self.wheel_rotations_after_drop = 0.0  # Track wheel rotations after ball drops
         self.ball_has_dropped = False  # Flag when ball drops from bumper
         self.angle_per_pocket = 2 * math.pi / len(self.NUMBERS)  # Pre-calculate angle per pocket
-        
+
+        # Create win text box in center of roulette frame
+        self.create_win_text_box()
+
+        # Previous numbers data and cached textures
+        self.previous_numbers_data = []
+        self.previous_numbers_textures = []
+
+
+    def create_win_text_box(self):
+        """Create a text box in the center of the roulette frame"""
+        # Create a label positioned in the center of the wheel
+        self.win_text_label = Label(
+            text="",
+            font_size=36,
+            color=(1, 0.9, 0, 1),  # Bright gold color
+            bold=True,
+            halign='center',
+            valign='middle',
+            size_hint=(None, None),
+            size=(200, 60),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5}
+        )
+        self.win_text_label.bind(size=self.win_text_label.setter('text_size'))
+
+        # Add to wheel widget
+        self.add_widget(self.win_text_label)
+
+
+
+
     def get_pocket_color(self, number):
         """Get color for a pocket number - casino realistic colors"""
         if number == 0:
@@ -228,6 +259,30 @@ class RouletteWheel(Widget):
             for i in range(0, int(self.width), 20):
                 for j in range(0, int(self.height), 20):
                     Ellipse(pos=(i, j), size=(2, 2))
+
+            # Draw previous winning numbers on the green background using cached textures
+            if hasattr(self, 'previous_numbers_textures') and self.previous_numbers_textures:
+                # Position on left side of wheel, within the green felt area
+                start_x = 50  # Left margin
+                start_y = self.height * 0.3  # Start from 30% up the wheel height
+                line_height = 40  # Space between numbers
+
+                for i, texture_data in enumerate(self.previous_numbers_textures):
+                    # White background for each number - clearly visible on green felt
+                    Color(1, 1, 1, 1.0)  # White background
+                    bg_x = start_x - 15
+                    bg_y = start_y + (len(self.previous_numbers_textures) - i - 1) * line_height - 10
+                    Rectangle(pos=(bg_x, bg_y), size=(70, 40))
+
+                    # Add a black border around each number area for definition
+                    Color(0, 0, 0, 1.0)  # Black border
+                    Line(rectangle=(bg_x, bg_y, 70, 40), width=2)
+
+                    # Draw cached texture for stable rendering
+                    num_x = start_x
+                    num_y = start_y + (len(self.previous_numbers_textures) - i - 1) * line_height
+                    if texture_data['texture']:
+                        Rectangle(texture=texture_data['texture'], pos=(num_x, num_y), size=texture_data['texture'].size)
 
             # Table border
             Color(0.4, 0.25, 0.1, 1)  # Wood border
@@ -487,6 +542,57 @@ class RouletteWheel(Widget):
             Triangle(points=tip_points)
 
 
+
+    def update_previous_numbers_display(self):
+        """Update the previous numbers data and cache textures for stable rendering"""
+        if not hasattr(self, 'game') or not hasattr(self.game, 'previous_numbers'):
+            return
+
+        # Store the previous numbers data
+        if self.game.previous_numbers:
+            self.previous_numbers_data = self.game.previous_numbers[-10:] if len(self.game.previous_numbers) > 10 else self.game.previous_numbers[:]
+        else:
+            self.previous_numbers_data = []
+
+        # Cache textures for stable rendering (no blinking)
+        self.previous_numbers_textures = []
+        font_size = 28
+
+        if self.previous_numbers_data:
+            recent_numbers = self.previous_numbers_data[-10:] if len(self.previous_numbers_data) > 10 else self.previous_numbers_data
+            recent_numbers.reverse()  # Most recent first
+
+            for number in recent_numbers:
+                # Determine text color
+                if number == 0:
+                    text_color = (0, 0.8, 0, 1)  # Green for zero
+                elif number in self.RED_NUMBERS:
+                    text_color = (0.8, 0, 0, 1)  # Red for red numbers
+                else:
+                    text_color = (0, 0, 0, 1)  # Black for black numbers
+
+                # Create and cache texture
+                label = CoreLabel(text=str(number), font_size=font_size, bold=True, color=text_color)
+                label.refresh()
+                texture = label.texture
+
+                self.previous_numbers_textures.append({
+                    'texture': texture,
+                    'number': number,
+                    'color': text_color
+                })
+
+    def draw_text(self, text, x, y, font_size=16, bold=False):
+        """Draw text on the canvas using Kivy's Label rendering"""
+        label = CoreLabel(text=text, font_size=font_size, bold=bold)
+        label.refresh()
+        texture = label.texture
+
+        if texture:
+            # Draw the texture at the specified position
+            return Rectangle(texture=texture, pos=(x, y), size=texture.size)
+
+
 class RouletteGame(BoxLayout):
     """Main game layout"""
     
@@ -499,6 +605,9 @@ class RouletteGame(BoxLayout):
         # Game state (must be set before create_ui)
         self.balance = 1000
         self.last_win = None
+
+        # Track previous winning numbers
+        self.previous_numbers = []
 
         # Initialize casino sounds
         self.load_sounds()
@@ -513,17 +622,23 @@ class RouletteGame(BoxLayout):
         self.total_bet = 0
         self.balance = 1000
 
+
         # Store references to betting buttons for updating bet amounts
         self.betting_buttons = {}
 
         # Create UI
         self.create_ui()
-        
+
+        # Initialize previous numbers display
+        self.wheel.update_previous_numbers_display()
+
         # Start update loop
         Clock.schedule_interval(self.update, 1.0 / 120.0)  # 120 FPS for smoother animation
 
         # Bind keyboard events
         Window.bind(on_key_down=self.on_key_down)
+
+
 
     def load_sounds(self):
         """Load casino sound effects - only using professional ball sound"""
@@ -539,7 +654,10 @@ class RouletteGame(BoxLayout):
             print("Professional sound file not found, no sound will play.")
             self.ball_drop_sound = None
 
-        # Don't use any other sounds - only the professional ball sound
+        # Create winning sound programmatically
+        self.create_winning_sound()
+
+        # Don't use any other sounds - only the professional ball sound and win sound
         self.wheel_spin_sound = None
         self.ball_launch_sound = None
         self.ball_settle_sound = None
@@ -747,6 +865,74 @@ class RouletteGame(BoxLayout):
             wav_file.setframerate(sample_rate)
             for sample in samples:
                 wav_file.writeframes(struct.pack('<h', sample))
+
+    def create_winning_sound(self):
+        """Create a celebratory winning sound effect"""
+        if not WAVE_AVAILABLE:
+            print("Wave module not available, no winning sound will play.")
+            self.winning_sound = None
+            return
+
+        try:
+            sample_rate = 44100
+            duration = 1.5
+            num_samples = int(sample_rate * duration)
+
+            samples = []
+            for i in range(num_samples):
+                t = i / sample_rate
+
+                # Create a triumphant chord with multiple frequencies
+                # Major chord: C4, E4, G4
+                freq1, freq2, freq3 = 261.63, 329.63, 392.00  # C4, E4, G4
+
+                # Create ascending arpeggio effect
+                if t < 0.5:
+                    # First note (C4)
+                    wave1 = 0.3 * math.sin(2 * math.pi * freq1 * t)
+                elif t < 1.0:
+                    # Second note (E4)
+                    wave1 = 0.3 * math.sin(2 * math.pi * freq2 * (t - 0.5))
+                else:
+                    # Third note (G4)
+                    wave1 = 0.3 * math.sin(2 * math.pi * freq3 * (t - 1.0))
+
+                # Add some sparkle with higher harmonics
+                sparkle = 0.1 * math.sin(2 * math.pi * freq3 * 2 * t) * math.exp(-t * 2)
+
+                # Add a celebratory "ta-da" ending
+                if t > 1.2:
+                    tada_freq = 523.25  # C5
+                    tada = 0.2 * math.sin(2 * math.pi * tada_freq * (t - 1.2)) * math.exp(-(t - 1.2) * 5)
+                else:
+                    tada = 0
+
+                # Combine waves with envelope
+                envelope = min(1.0, i / (sample_rate * 0.1))  # Quick attack
+                envelope *= max(0.0, 1.0 - (i / num_samples) * 0.3)  # Slow release
+
+                sample = envelope * (wave1 + sparkle + tada)
+                samples.append(int(sample * 32767))
+
+            # Write winning sound file
+            filename = 'sounds/winning_sound.wav'
+            with wave.open(filename, 'wb') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(sample_rate)
+                for sample in samples:
+                    wav_file.writeframes(struct.pack('<h', sample))
+
+            # Load the sound
+            self.winning_sound = SoundLoader.load(filename)
+            if self.winning_sound:
+                print("Winning sound created successfully!")
+            else:
+                print("Failed to load winning sound.")
+
+        except Exception as e:
+            print(f"Failed to create winning sound: {e}")
+            self.winning_sound = None
 
     def create_beep_functions(self):
         """Create beep functions using system sounds"""
@@ -1240,6 +1426,20 @@ class RouletteGame(BoxLayout):
             self.process_payouts()
             print(f"Winning number: {self.wheel.winning_number}")
 
+
+    def show_win_in_existing_labels(self, win_amount):
+        """Show win information in the center of roulette frame"""
+        if hasattr(self.wheel, 'win_text_label'):
+            # Show "you win!!" in the center text box
+            self.wheel.win_text_label.text = "YOU WIN!!"
+
+            # Schedule clearing after 5 seconds
+            def clear_win_text(dt):
+                if hasattr(self.wheel, 'win_text_label'):
+                    self.wheel.win_text_label.text = ""
+
+            Clock.schedule_once(clear_win_text, 5)
+
     def process_payouts(self):
         """Process betting payouts based on winning number"""
         win_number = self.wheel.winning_number
@@ -1283,10 +1483,41 @@ class RouletteGame(BoxLayout):
         else:
             print("No winning bets this round")
 
-        # Clear bets after payout
-        self.bets = {}
-        self.total_bet = 0
-        self.update_display()
+        # Add winning number to previous numbers list
+        self.previous_numbers.append(win_number)
+        if len(self.previous_numbers) > 10:
+            self.previous_numbers.pop(0)  # Keep only last 10 numbers
+
+
+        # Update the previous numbers display
+        self.wheel.update_previous_numbers_display()
+
+        print(f"Winning number: {win_number}")
+
+
+        if total_payout > 0:
+            self.show_win_in_existing_labels(total_payout)
+            if self.winning_sound:
+                self.winning_sound.play()
+
+            # Clear bets after showing the win result (5 seconds)
+            def clear_bets_after_win(dt):
+                self.bets = {}
+                self.total_bet = 0
+                self.update_display()
+                self.update_betting_buttons()
+                if hasattr(self, 'betting_container') and self.betting_container:
+                    self.draw_coins_on_table(self.betting_container)
+
+            Clock.schedule_once(clear_bets_after_win, 5)
+        else:
+            # No win - clear bets immediately
+            self.bets = {}
+            self.total_bet = 0
+            self.update_display()
+            self.update_betting_buttons()
+            if hasattr(self, 'betting_container') and self.betting_container:
+                self.draw_coins_on_table(self.betting_container)
 
 
 class RouletteApp(App):
