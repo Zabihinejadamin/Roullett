@@ -263,7 +263,7 @@ class RouletteWheel(Widget):
             # Draw previous winning numbers on the green background using cached textures
             if hasattr(self, 'previous_numbers_textures') and self.previous_numbers_textures:
                 # Position on left side of wheel, within the green felt area
-                start_x = 50  # Left margin
+                start_x = 25  # Left margin - moved a little more left
                 start_y = self.height * 0.3  # Start from 30% up the wheel height
                 line_height = 40  # Space between numbers
 
