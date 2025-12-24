@@ -513,6 +513,9 @@ class RouletteGame(BoxLayout):
         self.total_bet = 0
         self.balance = 1000
 
+        # Store references to betting buttons for updating bet amounts
+        self.betting_buttons = {}
+
         # Create UI
         self.create_ui()
         
@@ -932,134 +935,178 @@ class RouletteGame(BoxLayout):
         self.update_chip_buttons()
 
     def create_betting_table_in_container(self, container):
-        """Create the betting table interface inside a container"""
-        betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=3, padding=0)  # no padding to eliminate gaps
+        """Create a traditional European roulette betting table interface"""
+        betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=0, padding=0)
 
         # Set casino green background for betting table
         with betting_container.canvas.before:
             Color(0.05, 0.25, 0.1, 1)  # Casino green felt
             self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
 
-        # Bind the rectangle to update when container size changes
         def update_bg(instance, value):
             self.bg_rect.pos = instance.pos
             self.bg_rect.size = instance.size
-
         betting_container.bind(pos=update_bg, size=update_bg)
 
-        # Balance and bet display row
-        info_row = BoxLayout(size_hint_y=0.08, spacing=10)
-        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=12, color=(1,1,0.8,1),
+        # Top info bar
+        info_row = BoxLayout(size_hint_y=0.08, spacing=5, padding=[5, 2, 5, 2])
+        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=10, color=(1,1,0.8,1),
                                  halign='left', valign='middle')
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
         info_row.add_widget(self.balance_label)
 
-        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=12, color=(1,0.8,1,1),
+        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=10, color=(1,0.8,1,1),
                              halign='right', valign='middle')
         self.bet_label.bind(size=self.bet_label.setter('text_size'))
         info_row.add_widget(self.bet_label)
-
         betting_container.add_widget(info_row)
 
-        # Chip selection row
-        chip_row = BoxLayout(size_hint_y=0.12, spacing=3)
-        chip_label = Label(text='CHIP:', font_size=12, color=(1,1,1,1), size_hint_x=0.15)
+        # Chip selection
+        chip_row = BoxLayout(size_hint_y=0.08, spacing=2, padding=[5, 2, 5, 2])
+        chip_label = Label(text='CHIP:', font_size=10, color=(1,1,1,1), size_hint_x=0.12)
         chip_row.add_widget(chip_label)
 
         self.chip_buttons = []
         chip_values = [1, 5, 10, 25, 50, 100]
         for value in chip_values:
-            btn = Button(text=f'${value}', font_size=10, size_hint_x=1/len(chip_values),
+            btn = Button(text=f'${value}', font_size=9, size_hint_x=1/len(chip_values),
                         background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
             btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
             self.chip_buttons.append(btn)
             chip_row.add_widget(btn)
-
         betting_container.add_widget(chip_row)
 
-        # Outside bets row
-        outside_row = BoxLayout(size_hint_y=0.15, spacing=2)
+        # Main betting table area
+        table_area = BoxLayout(size_hint_y=0.74, orientation='vertical', spacing=2, padding=[5, 2, 5, 2])
 
-        # Red/Black
-        red_btn = Button(text='RED', font_size=10, background_color=(0.8, 0.1, 0.1, 1), color=(1,1,1,1))
-        red_btn.bind(on_press=lambda instance: self.place_bet('red'))
-        outside_row.add_widget(red_btn)
+        # Top row: Zero pocket + Number grid (3 rows x 12 columns)
+        top_section = BoxLayout(size_hint_y=0.7, spacing=3)
 
-        black_btn = Button(text='BLACK', font_size=10, background_color=(0.1, 0.1, 0.1, 1), color=(1,1,1,1))
-        black_btn.bind(on_press=lambda instance: self.place_bet('black'))
-        outside_row.add_widget(black_btn)
+        # Zero pocket (green oval at left end)
+        zero_container = BoxLayout(size_hint_x=0.08, orientation='vertical')
+        zero_btn = Button(text='0', font_size=14, background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1),
+                         bold=True, size_hint_y=1.0)
+        zero_btn.bind(on_press=lambda instance: self.place_bet('zero'))
+        self.betting_buttons['zero'] = zero_btn
+        zero_container.add_widget(zero_btn)
+        top_section.add_widget(zero_container)
 
-        # Even/Odd
-        even_btn = Button(text='EVEN', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
-        even_btn.bind(on_press=lambda instance: self.place_bet('even'))
-        outside_row.add_widget(even_btn)
+        # Number grid (3 rows x 12 columns = 36 numbers)
+        numbers_container = BoxLayout(size_hint_x=0.92, orientation='vertical', spacing=2)
 
-        odd_btn = Button(text='ODD', font_size=10, background_color=(0.4, 0.4, 0.8, 1), color=(1,1,1,1))
-        odd_btn.bind(on_press=lambda instance: self.place_bet('odd'))
-        outside_row.add_widget(odd_btn)
+        # Define the exact European roulette number layout
+        number_rows = [
+            [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],  # Top row (red: 3,9,12,18,21,27,30,36)
+            [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],  # Middle row (red: 5,14,17,23,26,32)
+            [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34]   # Bottom row (red: 1,7,10,16,19,25,28,31,34)
+        ]
 
-        # High/Low
-        low_btn = Button(text='1-18', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
-        low_btn.bind(on_press=lambda instance: self.place_bet('low'))
-        outside_row.add_widget(low_btn)
+        for row_nums in number_rows:
+            row_container = BoxLayout(size_hint_y=1/3, spacing=1)
+            for num in row_nums:
+                # Determine color: red or black
+                is_red = num in self.wheel.RED_NUMBERS
+                bg_color = (0.85, 0.15, 0.15, 1) if is_red else (0.15, 0.15, 0.15, 1)  # Casino red/black
 
-        high_btn = Button(text='19-36', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
-        high_btn.bind(on_press=lambda instance: self.place_bet('high'))
-        outside_row.add_widget(high_btn)
+                num_btn = Button(text=str(num), font_size=11, background_color=bg_color,
+                               color=(1,1,1,1), bold=True, size_hint_x=1/12)
+                num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
+                self.betting_buttons[f'number_{num}'] = num_btn
+                row_container.add_widget(num_btn)
+            numbers_container.add_widget(row_container)
 
-        betting_container.add_widget(outside_row)
+        top_section.add_widget(numbers_container)
+        table_area.add_widget(top_section)
 
-        # Dozens row
+        # Dozens row (three wide sections spanning 4 columns each)
         dozens_row = BoxLayout(size_hint_y=0.15, spacing=2)
 
-        doz1_btn = Button(text='1st 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz1_btn = Button(text='1st 12', font_size=12, background_color=(0.6, 0.4, 0.8, 1),
+                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
         doz1_btn.bind(on_press=lambda instance: self.place_bet('dozen1'))
+        self.betting_buttons['dozen1'] = doz1_btn
         dozens_row.add_widget(doz1_btn)
 
-        doz2_btn = Button(text='2nd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz2_btn = Button(text='2nd 12', font_size=12, background_color=(0.6, 0.4, 0.8, 1),
+                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
         doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
+        self.betting_buttons['dozen2'] = doz2_btn
         dozens_row.add_widget(doz2_btn)
 
-        doz3_btn = Button(text='3rd 12', font_size=9, background_color=(0.6, 0.4, 0.8, 1), color=(1,1,1,1))
+        doz3_btn = Button(text='3rd 12', font_size=12, background_color=(0.6, 0.4, 0.8, 1),
+                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
         doz3_btn.bind(on_press=lambda instance: self.place_bet('dozen3'))
+        self.betting_buttons['dozen3'] = doz3_btn
         dozens_row.add_widget(doz3_btn)
 
-        zero_btn = Button(text='0', font_size=10, background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1))
-        zero_btn.bind(on_press=lambda instance: self.place_bet('zero'))
-        dozens_row.add_widget(zero_btn)
+        table_area.add_widget(dozens_row)
 
-        betting_container.add_widget(dozens_row)
+        # Bottom row: Six sections (each spanning 2 columns)
+        bottom_row = BoxLayout(size_hint_y=0.15, spacing=2)
 
-        # Number grid (simplified - just a few key numbers for demo)
-        numbers_row = BoxLayout(size_hint_y=0.15, spacing=1)
-        key_numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        # 1to18 (neutral background)
+        low_btn = Button(text='1 to 18', font_size=11, background_color=(0.3, 0.3, 0.3, 1),
+                        color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        low_btn.bind(on_press=lambda instance: self.place_bet('low'))
+        self.betting_buttons['low'] = low_btn
+        bottom_row.add_widget(low_btn)
 
-        for num in key_numbers:
-            color = (0.8, 0.1, 0.1, 1) if num in self.wheel.RED_NUMBERS else (0.1, 0.1, 0.1, 1)
-            num_btn = Button(text=str(num), font_size=8, background_color=color, color=(1,1,1,1),
-                           size_hint_x=1/len(key_numbers))
-            num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
-            numbers_row.add_widget(num_btn)
+        # EVEN (neutral background)
+        even_btn = Button(text='EVEN', font_size=11, background_color=(0.3, 0.3, 0.3, 1),
+                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        even_btn.bind(on_press=lambda instance: self.place_bet('even'))
+        self.betting_buttons['even'] = even_btn
+        bottom_row.add_widget(even_btn)
 
-        betting_container.add_widget(numbers_row)
+        # RED (red background)
+        red_btn = Button(text='RED', font_size=11, background_color=(0.8, 0.1, 0.1, 1),
+                        color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        red_btn.bind(on_press=lambda instance: self.place_bet('red'))
+        self.betting_buttons['red'] = red_btn
+        bottom_row.add_widget(red_btn)
 
-        # Control buttons row
-        control_row = BoxLayout(size_hint_y=0.2, spacing=5)
+        # BLACK (black background)
+        black_btn = Button(text='BLACK', font_size=11, background_color=(0.1, 0.1, 0.1, 1),
+                          color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        black_btn.bind(on_press=lambda instance: self.place_bet('black'))
+        self.betting_buttons['black'] = black_btn
+        bottom_row.add_widget(black_btn)
 
-        clear_btn = Button(text='CLEAR', font_size=12, background_color=(0.6, 0.2, 0.2, 1), color=(1,1,1,1))
+        # ODD (neutral background)
+        odd_btn = Button(text='ODD', font_size=11, background_color=(0.3, 0.3, 0.3, 1),
+                        color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        odd_btn.bind(on_press=lambda instance: self.place_bet('odd'))
+        self.betting_buttons['odd'] = odd_btn
+        bottom_row.add_widget(odd_btn)
+
+        # 19to36 (neutral background)
+        high_btn = Button(text='19 to 36', font_size=11, background_color=(0.3, 0.3, 0.3, 1),
+                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
+        high_btn.bind(on_press=lambda instance: self.place_bet('high'))
+        self.betting_buttons['high'] = high_btn
+        bottom_row.add_widget(high_btn)
+
+        table_area.add_widget(bottom_row)
+        betting_container.add_widget(table_area)
+
+        # Bottom control buttons
+        control_row = BoxLayout(size_hint_y=0.1, spacing=10, padding=[10, 5, 10, 5])
+
+        clear_btn = Button(text='CLEAR BETS', font_size=12, background_color=(0.6, 0.2, 0.2, 1),
+                          color=(1,1,1,1), bold=True)
         clear_btn.bind(on_press=self.clear_bets)
         control_row.add_widget(clear_btn)
 
-        spin_btn = Button(text='SPIN', font_size=14, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1), bold=True)
+        spin_btn = Button(text='SPIN', font_size=14, background_color=(0.2, 0.6, 0.2, 1),
+                         color=(1,1,1,1), bold=True)
         spin_btn.bind(on_press=self.spin_wheel)
         control_row.add_widget(spin_btn)
 
         betting_container.add_widget(control_row)
 
         container.add_widget(betting_container)
-
-        # Update chip button colors to show selection
         self.update_chip_buttons()
+        self.update_betting_buttons()
 
     def select_chip(self, value):
         """Select chip value for betting"""
@@ -1076,6 +1123,43 @@ class RouletteGame(BoxLayout):
             else:
                 btn.background_color = (0.8, 0.6, 0.2, 1)  # Brown for unselected
 
+    def update_betting_buttons(self):
+        """Update all betting button text to show current bet amounts"""
+        for bet_type, button in self.betting_buttons.items():
+            bet_amount = self.bets.get(bet_type, 0)
+
+            # Get the base text for the button
+            if bet_type == 'zero':
+                base_text = '0'
+            elif bet_type.startswith('number_'):
+                base_text = bet_type.split('_')[1]
+            elif bet_type == 'dozen1':
+                base_text = '1st 12'
+            elif bet_type == 'dozen2':
+                base_text = '2nd 12'
+            elif bet_type == 'dozen3':
+                base_text = '3rd 12'
+            elif bet_type == 'red':
+                base_text = 'RED'
+            elif bet_type == 'black':
+                base_text = 'BLACK'
+            elif bet_type == 'even':
+                base_text = 'EVEN'
+            elif bet_type == 'odd':
+                base_text = 'ODD'
+            elif bet_type == 'low':
+                base_text = '1 to 18'
+            elif bet_type == 'high':
+                base_text = '19 to 36'
+            else:
+                base_text = bet_type.upper()
+
+            # Update button text with bet amount
+            if bet_amount > 0:
+                button.text = f'{base_text}\n${bet_amount}'
+            else:
+                button.text = base_text
+
     def place_bet(self, bet_type):
         """Place a bet on the specified type"""
         if self.balance >= self.current_chip:
@@ -1085,6 +1169,7 @@ class RouletteGame(BoxLayout):
             self.total_bet += self.current_chip
             self.balance -= self.current_chip
             self.update_display()
+            self.update_betting_buttons()
             print(f"Placed ${self.current_chip} on {bet_type}. Total bet: ${self.total_bet}, Balance: ${self.balance}")
         else:
             print("Insufficient balance!")
@@ -1096,6 +1181,7 @@ class RouletteGame(BoxLayout):
         self.bets = {}
         self.total_bet = 0
         self.update_display()
+        self.update_betting_buttons()
         print("Bets cleared")
 
     def update_display(self):
