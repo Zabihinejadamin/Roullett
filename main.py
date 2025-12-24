@@ -493,7 +493,7 @@ class RouletteGame(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        self.padding = [10, 0, 10, 10]  # [left, top, right, bottom] - no top padding
+        self.padding = 0  # Remove all padding to eliminate gaps
         self.spacing = 0  # Remove spacing between wheel and betting table
         
         # Game state (must be set before create_ui)
@@ -933,7 +933,7 @@ class RouletteGame(BoxLayout):
 
     def create_betting_table_in_container(self, container):
         """Create the betting table interface inside a container"""
-        betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=3, padding=[3, 0, 3, 3])  # no top padding
+        betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=3, padding=0)  # no padding to eliminate gaps
 
         # Set casino green background for betting table
         with betting_container.canvas.before:
