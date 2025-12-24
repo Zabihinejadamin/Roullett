@@ -811,8 +811,14 @@ class RouletteGame(BoxLayout):
             print("Coin drop sound file not found.")
             self.coin_drop_sound = None
 
-        # Create winning sound programmatically
-        self.create_winning_sound()
+        # Load the win sound for winning money
+        win_sound = SoundLoader.load('sounds/win-sound.mp3')
+        if win_sound:
+            self.winning_sound = win_sound
+            print("Win sound loaded successfully!")
+        else:
+            print("Win sound file not found.")
+            self.winning_sound = None
 
         # Don't use any other sounds - only the professional ball sound, win sound, and coin sound
         self.wheel_spin_sound = None
