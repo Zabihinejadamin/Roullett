@@ -271,7 +271,8 @@ class RouletteWheel(Widget):
                     # White background for each number - clearly visible on green felt
                     Color(1, 1, 1, 1.0)  # White background
                     bg_x = start_x - 15
-                    bg_y = start_y + (len(self.previous_numbers_textures) - i - 1) * line_height - 10
+                    # Most recent number (i=0) at bottom (y=0), older numbers above it
+                    bg_y = i * line_height
                     Rectangle(pos=(bg_x, bg_y), size=(70, 40))
 
                     # Add a black border around each number area for definition
@@ -280,7 +281,8 @@ class RouletteWheel(Widget):
 
                     # Draw cached texture for stable rendering
                     num_x = start_x
-                    num_y = start_y + (len(self.previous_numbers_textures) - i - 1) * line_height
+                    # Most recent number (i=0) at bottom (y=0), older numbers above it
+                    num_y = i * line_height
                     if texture_data['texture']:
                         Rectangle(texture=texture_data['texture'], pos=(num_x, num_y), size=texture_data['texture'].size)
 
