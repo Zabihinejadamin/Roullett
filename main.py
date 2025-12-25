@@ -250,7 +250,7 @@ class RouletteWheel(Widget):
         
         num_pockets = len(self.NUMBERS)
         
-        # Draw casino green felt background with texture and 3D depth
+        # Draw blue-gray felt background with texture and 3D depth
         with self.canvas:
             # Wheel shadow for 3D depth
             Color(0, 0, 0, 0.3)  # Dark shadow
@@ -258,18 +258,18 @@ class RouletteWheel(Widget):
                    size=(radius * 2 + 16, radius * 2 + 16))
 
             # Base felt color
-            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
+            Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
             Rectangle(pos=(0, 0), size=(self.width, self.height))
 
             # Felt texture (subtle pattern)
-            Color(0.08, 0.3, 0.12, 0.3)  # Slightly lighter green
+            Color(0.2, 0.2, 0.25, 0.3)  # Slightly lighter very dark blue-gray
             for i in range(0, int(self.width), 20):
                 for j in range(0, int(self.height), 20):
                     Ellipse(pos=(i, j), size=(2, 2))
 
-            # Draw previous winning numbers on the green background using cached textures
+            # Draw previous winning numbers on the blue-gray background using cached textures
             if hasattr(self, 'previous_numbers_textures') and self.previous_numbers_textures:
-                # Position on left side of wheel, within the green felt area
+                # Position on left side of wheel, within the blue-gray felt area
                 start_x = 25  # Left margin - moved a little more left
                 start_y = self.height * 0.3  # Start from 30% up the wheel height
                 line_height = 40  # Space between numbers
@@ -1207,7 +1207,7 @@ class RouletteGame(BoxLayout):
     
     def create_ui(self):
         """Create casino-style game UI"""
-        # Betting table at top with green background
+        # Betting table at top with blue-gray background
         betting_container_outer = BoxLayout(size_hint_y=0.4, orientation='vertical')
         self.create_betting_table_in_container(betting_container_outer)
         self.add_widget(betting_container_outer)
@@ -1233,9 +1233,9 @@ class RouletteGame(BoxLayout):
         """Create the betting table interface"""
         betting_container = BoxLayout(size_hint_y=0.4, orientation='vertical', spacing=3, padding=[3, 0, 3, 3])  # no top padding
 
-        # Set casino green background for betting table
+        # Set blue-gray background for betting table
         with betting_container.canvas.before:
-            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
+            Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
             self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
 
         # Bind the rectangle to update when container size changes
@@ -1363,9 +1363,9 @@ class RouletteGame(BoxLayout):
         """Create a traditional European roulette betting table interface"""
         betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=0, padding=0)
 
-        # Set casino green background for betting table
+        # Set blue-gray background for betting table
         with betting_container.canvas.before:
-            Color(0.05, 0.25, 0.1, 1)  # Casino green felt
+            Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
             self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
 
         def update_bg(instance, value):
