@@ -252,10 +252,7 @@ class RouletteWheel(Widget):
         
         # Draw blue-gray felt background with texture and 3D depth
         with self.canvas:
-            # Wheel shadow for 3D depth
-            Color(0, 0, 0, 0.3)  # Dark shadow
-            Ellipse(pos=(center_x - radius - 8, center_y - radius - 8),
-                   size=(radius * 2 + 16, radius * 2 + 16))
+            # Wheel shadow removed - no shadow on roulette
 
             # Base felt color
             Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
@@ -305,10 +302,7 @@ class RouletteWheel(Widget):
 
         # Draw outer bumper track (raised margin) with wood grain and 3D depth
         with self.canvas:
-            # Bumper track shadow for depth
-            Color(0, 0, 0, 0.4)  # Shadow
-            Ellipse(pos=(center_x - bumper_outer + 3, center_y - bumper_outer + 3),
-                   size=(bumper_outer * 2, bumper_outer * 2))
+            # Bumper track shadow removed
 
             # Bumper track base (dark mahogany wood) - raised effect
             Color(0.12, 0.06, 0.03, 1)  # Even deeper mahogany for base
@@ -351,10 +345,7 @@ class RouletteWheel(Widget):
 
         # Draw outer wheel rim (polished mahogany wood) with 3D depth
         with self.canvas:
-            # Wheel rim shadow for depth
-            Color(0, 0, 0, 0.5)  # Dark shadow
-            Ellipse(pos=(center_x - radius + 4, center_y - radius + 4),
-                   size=(radius * 2, radius * 2))
+            # Wheel rim shadow removed
 
             # Base wood layer - recessed effect
             Color(0.18, 0.09, 0.04, 1)  # Darker mahogany base
