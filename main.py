@@ -12,6 +12,8 @@ from kivy.core.window import Window
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.core.text import Label as CoreLabel
 from kivy.core.audio import SoundLoader
@@ -1141,6 +1143,66 @@ class RouletteGame(BoxLayout):
 
         print("Sound system initialized")
     
+    def create_announcement_overlay(self):
+        """Create an invisible overlay frame matching the roulette frame size for announcements"""
+        # Create a RelativeLayout that will overlay the wheel
+        # RelativeLayout has NO background by default - completely invisible/transparent
+        overlay = RelativeLayout(size_hint=(1, 1))
+        
+        # No canvas drawing on overlay - it's completely transparent
+        # Only the labels inside will have visible backgrounds for readability
+        # The overlay itself is invisible and doesn't block the roulette frame
+        
+        # Create label for "YOU WON" text in center (no background - fully transparent)
+        self.winning_number_label = Label(
+            text="",
+            font_size=36,
+            color=(1, 0.9, 0, 1),  # Gold color
+            bold=True,
+            halign='center',
+            valign='middle',
+            size_hint=(None, None),
+            size=(150, 50),
+        )
+        self.winning_number_label.bind(size=self.winning_number_label.setter('text_size'))
+        
+        # Position in center
+        def update_winning_number_pos(instance, value):
+            if overlay.width > 0 and overlay.height > 0:
+                # Center horizontally and vertically
+                center_x = (overlay.width - self.winning_number_label.width) / 2
+                center_y = (overlay.height - self.winning_number_label.height) / 2 + 15  # Slightly above center to make room for win amount
+                self.winning_number_label.pos = (center_x, center_y)
+        
+        overlay.bind(size=update_winning_number_pos, pos=update_winning_number_pos)
+        overlay.add_widget(self.winning_number_label)
+        
+        # Create label for win amount in center (below winning number, no background - fully transparent)
+        self.win_amount_label = Label(
+            text="",
+            font_size=28,
+            color=(1, 0.9, 0, 1),  # Gold color
+            bold=True,
+            halign='center',
+            valign='middle',
+            size_hint=(None, None),
+            size=(100, 40),
+        )
+        self.win_amount_label.bind(size=self.win_amount_label.setter('text_size'))
+        
+        # Position below winning number in center
+        def update_win_amount_pos(instance, value):
+            if overlay.width > 0 and overlay.height > 0:
+                # Center horizontally, position below winning number
+                center_x = (overlay.width - self.win_amount_label.width) / 2
+                center_y = (overlay.height - self.win_amount_label.height) / 2 - 25  # Below center, below winning number
+                self.win_amount_label.pos = (center_x, center_y)
+        
+        overlay.bind(size=update_win_amount_pos, pos=update_win_amount_pos)
+        overlay.add_widget(self.win_amount_label)
+        
+        return overlay
+    
     def create_ui(self):
         """Create casino-style game UI"""
         # Betting table at top with green background
@@ -1148,9 +1210,21 @@ class RouletteGame(BoxLayout):
         self.create_betting_table_in_container(betting_container_outer)
         self.add_widget(betting_container_outer)
 
-        # Wheel container at bottom - starting from (0,0) position
-        wheel_container = BoxLayout(size_hint_y=0.6, padding=0)  # Take 60% from bottom
+        # Wheel container at bottom - use FloatLayout for absolute positioning
+        wheel_container = FloatLayout(size_hint_y=0.6)  # Take 60% from bottom
+        
+        # Add wheel - it will fill the container
+        self.wheel.size_hint = (1, 1)
+        self.wheel.pos_hint = {'x': 0, 'y': 0}
         wheel_container.add_widget(self.wheel)
+        
+        # Create invisible overlay frame positioned exactly on top of the wheel
+        self.announcement_overlay = self.create_announcement_overlay()
+        # Position overlay to match wheel exactly (same size and position)
+        self.announcement_overlay.size_hint = (1, 1)
+        self.announcement_overlay.pos_hint = {'x': 0, 'y': 0}
+        wheel_container.add_widget(self.announcement_overlay)  # Add last so it's on top
+        
         self.add_widget(wheel_container)
 
     def create_betting_table(self):
@@ -1547,6 +1621,14 @@ class RouletteGame(BoxLayout):
         """Handle spin button - only spin if there are bets"""
         if self.total_bet > 0:
             if not self.wheel.spinning and not self.wheel.ball_active:
+                # Clear previous winning announcements
+                if hasattr(self, 'winning_number_label'):
+                    self.winning_number_label.text = ""
+                if hasattr(self, 'win_amount_label'):
+                    self.win_amount_label.text = ""
+                if hasattr(self.wheel, 'win_text_label'):
+                    self.wheel.win_text_label.text = ""
+                
                 # Start the sequence: spin wheel and launch ball
                 self.wheel.start_spin()
                 self.wheel.launch_ball()
@@ -1607,6 +1689,34 @@ class RouletteGame(BoxLayout):
                     self.wheel.win_text_label.text = ""
 
             Clock.schedule_once(clear_win_text, 5)
+    
+    def show_winning_announcement(self, winning_number, win_amount=None):
+        """Show winning announcement in the overlay frame"""
+        # Only show "YOU WON" and win amount if there's actually a win
+        if win_amount is not None and win_amount > 0:
+            if hasattr(self, 'winning_number_label'):
+                # Show "YOU WON" text
+                self.winning_number_label.text = "YOU WON"
+                self.winning_number_label.color = (1, 0.9, 0, 1)  # Gold color
+            
+            if hasattr(self, 'win_amount_label'):
+                # Show win amount
+                self.win_amount_label.text = f"${win_amount}"
+                self.win_amount_label.color = (1, 0.9, 0, 1)  # Gold color
+            
+            # Schedule clearing both after 5 seconds
+            def clear_win_announcement(dt):
+                if hasattr(self, 'winning_number_label'):
+                    self.winning_number_label.text = ""
+                if hasattr(self, 'win_amount_label'):
+                    self.win_amount_label.text = ""
+            Clock.schedule_once(clear_win_announcement, 5)
+        else:
+            # No win - clear any existing text
+            if hasattr(self, 'winning_number_label'):
+                self.winning_number_label.text = ""
+            if hasattr(self, 'win_amount_label'):
+                self.win_amount_label.text = ""
 
     def process_payouts(self):
         """Process betting payouts based on winning number"""
@@ -1662,6 +1772,9 @@ class RouletteGame(BoxLayout):
 
         print(f"Winning number: {win_number}")
 
+        # Show winning announcement in overlay (always show number, show amount if win)
+        if hasattr(self, 'show_winning_announcement'):
+            self.show_winning_announcement(win_number, total_payout if total_payout > 0 else None)
 
         if total_payout > 0:
             self.show_win_in_existing_labels(total_payout)
