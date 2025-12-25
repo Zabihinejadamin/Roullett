@@ -1449,27 +1449,38 @@ class RouletteGame(BoxLayout):
         top_section.add_widget(numbers_container)
         table_area.add_widget(top_section)
 
-        # Dozens row (three wide sections spanning 4 columns each)
+        # Dozens row - align with number columns (1st 12 with cols 1-4, 2nd 12 with cols 5-8, 3rd 12 with cols 9-12)
         dozens_row = BoxLayout(size_hint_y=0.15, spacing=2)
+        
+        # Empty spacer to match zero column width (0.08)
+        zero_spacer = BoxLayout(size_hint_x=0.08)
+        dozens_row.add_widget(zero_spacer)
+        
+        # Dozens container to match numbers container width (0.92)
+        dozens_container = BoxLayout(size_hint_x=0.92, spacing=2)
 
-        doz1_btn = Button(text='1st 12', font_size=17, background_color=(0.6, 0.4, 0.8, 1),
-                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
+        # 1st 12 aligns with columns 1-4 (4/12 of 0.92 = 0.3067)
+        doz1_btn = Button(text='1st 12', font_size=17, background_color=(0.2, 0.6, 0.8, 1),  # Blue
+                         color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz1_btn.bind(on_press=lambda instance: self.place_bet('dozen1'))
         self.betting_buttons['dozen1'] = doz1_btn
-        dozens_row.add_widget(doz1_btn)
+        dozens_container.add_widget(doz1_btn)
 
-        doz2_btn = Button(text='2nd 12', font_size=17, background_color=(0.6, 0.4, 0.8, 1),
-                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
+        # 2nd 12 aligns with columns 5-8 (4/12 of 0.92 = 0.3067)
+        doz2_btn = Button(text='2nd 12', font_size=17, background_color=(0.8, 0.6, 0.2, 1),  # Orange/Gold
+                         color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
         self.betting_buttons['dozen2'] = doz2_btn
-        dozens_row.add_widget(doz2_btn)
+        dozens_container.add_widget(doz2_btn)
 
-        doz3_btn = Button(text='3rd 12', font_size=17, background_color=(0.6, 0.4, 0.8, 1),
-                         color=(1,1,1,1), bold=True, size_hint_x=1/3)
+        # 3rd 12 aligns with columns 9-12 (4/12 of 0.92 = 0.3067)
+        doz3_btn = Button(text='3rd 12', font_size=17, background_color=(0.6, 0.4, 0.8, 1),  # Purple
+                         color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz3_btn.bind(on_press=lambda instance: self.place_bet('dozen3'))
         self.betting_buttons['dozen3'] = doz3_btn
-        dozens_row.add_widget(doz3_btn)
-
+        dozens_container.add_widget(doz3_btn)
+        
+        dozens_row.add_widget(dozens_container)
         table_area.add_widget(dozens_row)
 
         # Bottom row: Six sections (each spanning 2 columns)
