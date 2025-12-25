@@ -40,16 +40,58 @@ Since Buildozer doesn't work natively on Windows, you need to use **WSL (Windows
    sudo apt install -y git unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
    ```
 
-4. **Install Python dependencies**:
+4. **Install Python dependencies and navigate to your project**:
    ```bash
+   # First, check which Python/pip you're using
+   which python3
+   which pip3
+   
+   # Install buildozer and dependencies (try these in order)
+   # Option 1: Install with --user flag
    pip3 install --user buildozer
    pip3 install --user Cython==0.29.33
-   ```
-
-5. **Add to PATH** (add this to `~/.bashrc`):
-   ```bash
+   
+   # Option 2: If that doesn't work, try without --user (requires sudo)
+   # sudo pip3 install buildozer
+   # sudo pip3 install Cython==0.29.33
+   
+   # Option 3: Use pip instead of pip3
+   # pip install --user buildozer
+   # pip install --user Cython==0.29.33
+   
+   # Verify installation location
+   python3 -c "import sys; print('\n'.join(sys.path))"
+   pip3 show buildozer
+   
+   # Add to PATH
    echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
    source ~/.bashrc
+   
+   # Navigate to your project directory
+   cd /mnt/c/Users/aminz/Documents/GitHub/Roullett
+   
+   # Try different ways to run buildozer:
+   # Method 1: Full path
+   ~/.local/bin/buildozer --version
+   
+   # Method 2: Python module (if installed correctly)
+   python3 -m buildozer --version
+   
+   # Method 3: Direct command (if PATH is set)
+   buildozer --version
+   ```
+   
+   **If still getting "No module named buildozer":**
+   ```bash
+   # Check if it's installed in a different location
+   find ~ -name "buildozer" -type f 2>/dev/null
+   
+   # Reinstall with verbose output
+   pip3 install --user --verbose buildozer
+   
+   # Or install globally (requires sudo)
+   sudo pip3 install buildozer
+   sudo pip3 install Cython==0.29.33
    ```
 
 ## Building the APK

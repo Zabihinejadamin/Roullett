@@ -68,7 +68,7 @@ osx.kivy_version = 2.3.0
 #
 
 # (bool) Indicate if the application should be fullscreen or not
-fullscreen = 0
+fullscreen = 1
 
 # (string) Presplash animation using Lottie format.
 # See https://lottie.github.io/lottie-spec/ for examples and https://airbnb.design/lottie/

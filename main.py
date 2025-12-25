@@ -1871,8 +1871,20 @@ class RouletteApp(App):
     """Main Kivy App"""
     
     def build(self):
-        # Set window size for mobile (can be fullscreen on actual device)
-        Window.size = (450, 700)  # Portrait mode for mobile - larger for better visibility
+        # On Android, Kivy automatically uses full screen - don't set Window.size
+        # Only set window size for desktop testing
+        try:
+            # Try to detect if we're on Android
+            from kivy.utils import platform
+            if platform != 'android':
+                Window.size = (450, 700)  # Desktop testing size
+        except:
+            # If detection fails, try setting size anyway (will fail silently on Android)
+            try:
+                Window.size = (450, 700)
+            except:
+                pass  # On Android, Window.size may not be settable
+        
         Window.clearcolor = (0.0, 0.0, 0.0, 1)  # Black background for wheel area
         
         # Create game
