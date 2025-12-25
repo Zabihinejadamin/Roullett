@@ -771,6 +771,8 @@ class RouletteGame(BoxLayout):
         self.bets = {}
         self.total_bet = 0
         self.balance = 1000
+        self.last_bet = 0  # Track the last total bet value
+        self.last_bets = {}  # Track the last bets dictionary for rebet
 
 
         # Store references to betting buttons for updating bet amounts
@@ -1373,12 +1375,18 @@ class RouletteGame(BoxLayout):
 
         # Top info bar
         info_row = BoxLayout(size_hint_y=0.08, spacing=5, padding=[5, 2, 5, 2])
-        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=10, color=(1,1,0.8,1),
+        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=18, color=(1,1,0.8,1),
                                  halign='left', valign='middle')
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
         info_row.add_widget(self.balance_label)
 
-        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=10, color=(1,0.8,1,1),
+        # Last bet label in the center - make it bigger to fit at least 20 characters
+        self.last_bet_label = Label(text=f'LAST BET: ${self.last_bet}', font_size=18, color=(1,1,1,1),
+                                   halign='center', valign='middle', size_hint_x=0.6)
+        self.last_bet_label.bind(size=self.last_bet_label.setter('text_size'))
+        info_row.add_widget(self.last_bet_label)
+
+        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=18, color=(1,0.8,1,1),
                              halign='right', valign='middle')
         self.bet_label.bind(size=self.bet_label.setter('text_size'))
         info_row.add_widget(self.bet_label)
@@ -1386,13 +1394,13 @@ class RouletteGame(BoxLayout):
 
         # Chip selection
         chip_row = BoxLayout(size_hint_y=0.08, spacing=2, padding=[5, 2, 5, 2])
-        chip_label = Label(text='CHIP:', font_size=16, color=(1,1,1,1), size_hint_x=0.12)
+        chip_label = Label(text='CHIP:', font_size=20, color=(1,1,1,1), size_hint_x=0.12)
         chip_row.add_widget(chip_label)
 
         self.chip_buttons = []
         chip_values = [1, 5, 10, 25, 50, 100]
         for value in chip_values:
-            btn = Button(text=f'${value}', font_size=15, size_hint_x=1/len(chip_values),
+            btn = Button(text=f'${value}', font_size=20, size_hint_x=1/len(chip_values),
                         background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
             btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
             self.chip_buttons.append(btn)
@@ -1520,6 +1528,16 @@ class RouletteGame(BoxLayout):
         clear_btn.bind(on_press=self.clear_bets)
         control_row.add_widget(clear_btn)
 
+        rebet_btn = Button(text='REBET', font_size=16, background_color=(0.4, 0.4, 0.8, 1),
+                          color=(1,1,1,1), bold=True)
+        rebet_btn.bind(on_press=self.rebet)
+        control_row.add_widget(rebet_btn)
+
+        double_btn = Button(text='2X', font_size=16, background_color=(0.8, 0.6, 0.2, 1),
+                          color=(1,1,1,1), bold=True)
+        double_btn.bind(on_press=self.double_bets)
+        control_row.add_widget(double_btn)
+
         spin_btn = Button(text='SPIN', font_size=18, background_color=(0.2, 0.6, 0.2, 1),
                          color=(1,1,1,1), bold=True)
         spin_btn.bind(on_press=self.spin_wheel)
@@ -1602,10 +1620,51 @@ class RouletteGame(BoxLayout):
         else:
             print("Insufficient balance!")
 
+    def rebet(self, instance=None):
+        """Repeat the last bet"""
+        if self.last_bets:
+            # Check if we have enough balance for the last bets
+            last_total = sum(self.last_bets.values())
+            if self.balance >= last_total:
+                # Clear current bets first
+                self.balance += self.total_bet
+                self.bets = {}
+                self.total_bet = 0
+                
+                # Restore last bets
+                self.bets = self.last_bets.copy()
+                self.total_bet = last_total
+                self.balance -= self.total_bet
+                
+                self.update_display()
+                self.update_betting_buttons()
+                print(f"Rebet: ${self.total_bet}")
+            else:
+                print("Insufficient balance to rebet!")
+    
+    def double_bets(self, instance=None):
+        """Double all current bets"""
+        if self.bets:
+            # Need enough balance to double (need to add the same amount again)
+            if self.balance >= self.total_bet:
+                # Double all bet amounts
+                for bet_type in self.bets:
+                    self.bets[bet_type] *= 2
+                # Subtract only the additional amount (the original total_bet)
+                self.balance -= self.total_bet
+                self.total_bet *= 2
+                
+                self.update_display()
+                self.update_betting_buttons()
+                print(f"Doubled bets: ${self.total_bet}")
+            else:
+                print("Insufficient balance to double bets!")
+    
     def clear_bets(self, instance=None):
         """Clear all bets"""
         # Refund bets to balance
         self.balance += self.total_bet
+        # Don't update last_bet when manually clearing - it should keep the previous spin's total
         self.bets = {}
         self.total_bet = 0
         self.update_display()
@@ -1615,6 +1674,7 @@ class RouletteGame(BoxLayout):
     def update_display(self):
         """Update balance and bet displays"""
         self.balance_label.text = f'BALANCE: ${self.balance}'
+        self.last_bet_label.text = f'LAST BET: ${self.last_bet}'
         self.bet_label.text = f'TOTAL BET: ${self.total_bet}'
 
     def spin_wheel(self, instance=None):
@@ -1783,6 +1843,8 @@ class RouletteGame(BoxLayout):
 
             # Clear bets after showing the win result (5 seconds)
             def clear_bets_after_win(dt):
+                self.last_bet = self.total_bet  # Save total bet as last bet before clearing
+                self.last_bets = self.bets.copy()  # Save bets dictionary for rebet
                 self.bets = {}
                 self.total_bet = 0
                 self.update_display()
@@ -1793,6 +1855,8 @@ class RouletteGame(BoxLayout):
             Clock.schedule_once(clear_bets_after_win, 5)
         else:
             # No win - clear bets immediately
+            self.last_bet = self.total_bet  # Save total bet as last bet before clearing
+            self.last_bets = self.bets.copy()  # Save bets dictionary for rebet
             self.bets = {}
             self.total_bet = 0
             self.update_display()
