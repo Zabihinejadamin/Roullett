@@ -17,7 +17,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.core.text import Label as CoreLabel
 from kivy.core.audio import SoundLoader
-from kivy.core.image import Image as CoreImage
 import math
 import random
 import os
@@ -27,21 +26,6 @@ try:
     WAVE_AVAILABLE = True
 except ImportError:
     WAVE_AVAILABLE = False
-
-# Font scaling for Android devices
-def get_font_scale():
-    """Get font scale factor for Android devices (higher DPI = larger scale)"""
-    try:
-        from kivy.utils import platform
-        if platform == 'android':
-            # Android devices typically have 2-3x DPI compared to desktop
-            # Scale fonts by 2.5x for better readability
-            return 2.5
-    except:
-        pass
-    return 1.0  # Desktop: no scaling
-
-FONT_SCALE = get_font_scale()
 
 
 class RouletteWheel(Widget):
@@ -86,7 +70,7 @@ class RouletteWheel(Widget):
         # Create a label positioned in the center of the wheel
         self.win_text_label = Label(
             text="",
-            font_size=int(36 * FONT_SCALE),
+            font_size=36,
             color=(1, 0.9, 0, 1),  # Bright gold color
             bold=True,
             halign='center',
@@ -545,7 +529,7 @@ class RouletteWheel(Widget):
                 number_y = center_y + math.sin(number_angle) * number_radius
                 
                 # Create text label for number
-                text_label = CoreLabel(text=str(number), font_size=int(14 * FONT_SCALE), 
+                text_label = CoreLabel(text=str(number), font_size=14, 
                                      color=(1, 1, 1, 1) if number != 0 else (1, 1, 0.5, 1))
                 text_label.refresh()
                 text_texture = text_label.texture
@@ -713,7 +697,7 @@ class RouletteWheel(Widget):
 
         # Cache textures for stable rendering (no blinking)
         self.previous_numbers_textures = []
-        font_size = int(28 * FONT_SCALE)
+        font_size = 28
 
         if self.previous_numbers_data:
             recent_numbers = self.previous_numbers_data[-10:] if len(self.previous_numbers_data) > 10 else self.previous_numbers_data
@@ -1168,7 +1152,7 @@ class RouletteGame(BoxLayout):
         # Create label for "YOU WON" text in center (no background - fully transparent)
         self.winning_number_label = Label(
             text="",
-            font_size=int(36 * FONT_SCALE),
+            font_size=36,
             color=(1, 0.9, 0, 1),  # Gold color
             bold=True,
             halign='center',
@@ -1192,7 +1176,7 @@ class RouletteGame(BoxLayout):
         # Create label for win amount in center (below winning number, no background - fully transparent)
         self.win_amount_label = Label(
             text="",
-            font_size=int(28 * FONT_SCALE),
+            font_size=28,
             color=(1, 0.9, 0, 1),  # Gold color
             bold=True,
             halign='center',
@@ -1216,116 +1200,11 @@ class RouletteGame(BoxLayout):
         return overlay
     
     def create_ui(self):
-        """Create casino-style game UI with red carpet background and margins"""
-        # Create red carpet background container that fills entire screen
-        carpet_container = FloatLayout()
-        carpet_container.size_hint = (1, 1)
-        
-        # Create content container first (needed for update_layout)
-        self.content_container = BoxLayout(
-            orientation='vertical',
-            size_hint=(None, None),
-            size=(100, 100),  # Initial size, will be updated
-            pos=(0, 0)  # Initial position, will be updated
-        )
-        self.content_container.padding = 0
-        self.content_container.spacing = 0
-        
-        # Load carpet texture background
-        self.carpet_texture = None
-        
-        # Exact path provided by user
-        exact_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\10013168.jpg'
-        
-        # Try to find the texture file - search broadly
-        texture_paths = [
-            exact_path,  # Try exact path first
-            'roulette_game/assets/textures/10013168.jpg',  # Relative path
-            'roulette_game/assets/textures/10013168.png',
-            'roulette_game/assets/textures/10013168.jpeg',
-        ]
-        
-        # Also search current directory for any file containing "10013168"
-        try:
-            current_dir = os.getcwd()
-            for file in os.listdir(current_dir):
-                if '10013168' in file or file.startswith('10013168'):
-                    texture_paths.append(file)
-                    print(f"Found potential texture file: {file}")
-        except Exception as e:
-            print(f"Error searching directory: {e}")
-        
-        # Also try common paths and extensions
-        base_paths = [
-            '10013168',
-            'textures/10013168',
-            'assets/10013168',
-            'images/10013168',
-        ]
-        extensions = ['.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '']
-        
-        for base in base_paths:
-            for ext in extensions:
-                path = base + ext
-                if path not in texture_paths:
-                    texture_paths.append(path)
-        
-        print(f"Searching for carpet texture file (trying {len(texture_paths)} paths)...")
-        for path in texture_paths:
-            if os.path.exists(path):
-                try:
-                    img = CoreImage(path)
-                    self.carpet_texture = img.texture
-                    print(f"✓✓✓ SUCCESS: Loaded carpet texture from: {os.path.abspath(path)}")
-                    print(f"  Texture size: {self.carpet_texture.size}")
-                    break
-                except Exception as e:
-                    print(f"✗ Failed to load texture from {path}: {e}")
-        
-        if not self.carpet_texture:
-            print("✗✗✗ WARNING: Carpet texture file '10013168' not found!")
-            print(f"  Current directory: {os.getcwd()}")
-            print(f"  Tried exact path: {exact_path}")
-            print("  Falling back to solid red color.")
-        
-        # Draw carpet background - will be updated when container size changes
-        with carpet_container.canvas.before:
-            if self.carpet_texture:
-                # Use texture if available - set white color to preserve texture colors
-                Color(1, 1, 1, 1)  # White tint preserves original texture colors
-                self.carpet_rect = Rectangle(texture=self.carpet_texture, pos=(0, 0), size=(100, 100))
-            else:
-                # Fallback to solid color if texture not found
-                Color(0.6, 0.1, 0.1, 1)  # Casino red carpet color
-                self.carpet_rect = Rectangle(pos=(0, 0), size=(100, 100))
-        
-        # Update carpet and content when container size changes
-        def update_layout(instance, size):
-            # Update carpet background size
-            self.carpet_rect.size = size
-            # Texture is already set, no need to update it again
-            
-            # Calculate 2% margin
-            margin_x = size[0] * 0.02
-            margin_y = size[1] * 0.02
-            content_width = size[0] - (2 * margin_x)
-            content_height = size[1] - (2 * margin_y)
-            
-            # Update content container size and position
-            self.content_container.size = (content_width, content_height)
-            self.content_container.pos = (margin_x, margin_y)
-        
-        carpet_container.bind(size=update_layout)
-        
+        """Create casino-style game UI"""
         # Betting table at top with blue-gray background
-        betting_container_outer = BoxLayout(
-            size_hint_y=0.4, 
-            orientation='vertical',
-            spacing=0,
-            padding=0
-        )
+        betting_container_outer = BoxLayout(size_hint_y=0.4, orientation='vertical')
         self.create_betting_table_in_container(betting_container_outer)
-        self.content_container.add_widget(betting_container_outer)
+        self.add_widget(betting_container_outer)
 
         # Wheel container at bottom - use FloatLayout for absolute positioning
         wheel_container = FloatLayout(size_hint_y=0.6)  # Take 60% from bottom
@@ -1342,16 +1221,7 @@ class RouletteGame(BoxLayout):
         self.announcement_overlay.pos_hint = {'x': 0, 'y': 0}
         wheel_container.add_widget(self.announcement_overlay)  # Add last so it's on top
         
-        self.content_container.add_widget(wheel_container)
-        
-        # Add content container to carpet
-        carpet_container.add_widget(self.content_container)
-        
-        # Add carpet container to main layout
-        self.add_widget(carpet_container)
-        
-        # Schedule initial layout update after window is ready
-        Clock.schedule_once(lambda dt: update_layout(carpet_container, carpet_container.size), 0.1)
+        self.add_widget(wheel_container)
 
     def create_betting_table(self):
         """Create the betting table interface"""
@@ -1499,18 +1369,18 @@ class RouletteGame(BoxLayout):
 
         # Top info bar
         info_row = BoxLayout(size_hint_y=0.08, spacing=5, padding=[5, 2, 5, 2])
-        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=int(18 * FONT_SCALE), color=(1,1,0.8,1),
+        self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=18, color=(1,1,0.8,1),
                                  halign='left', valign='middle')
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
         info_row.add_widget(self.balance_label)
 
         # Last bet label in the center - make it bigger to fit at least 20 characters
-        self.last_bet_label = Label(text=f'LAST BET: ${self.last_bet}', font_size=int(18 * FONT_SCALE), color=(1,1,1,1),
+        self.last_bet_label = Label(text=f'LAST BET: ${self.last_bet}', font_size=18, color=(1,1,1,1),
                                    halign='center', valign='middle', size_hint_x=0.6)
         self.last_bet_label.bind(size=self.last_bet_label.setter('text_size'))
         info_row.add_widget(self.last_bet_label)
 
-        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=int(18 * FONT_SCALE), color=(1,0.8,1,1),
+        self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=18, color=(1,0.8,1,1),
                              halign='right', valign='middle')
         self.bet_label.bind(size=self.bet_label.setter('text_size'))
         info_row.add_widget(self.bet_label)
@@ -1518,13 +1388,13 @@ class RouletteGame(BoxLayout):
 
         # Chip selection
         chip_row = BoxLayout(size_hint_y=0.08, spacing=2, padding=[5, 2, 5, 2])
-        chip_label = Label(text='CHIP:', font_size=int(20 * FONT_SCALE), color=(1,1,1,1), size_hint_x=0.12)
+        chip_label = Label(text='CHIP:', font_size=20, color=(1,1,1,1), size_hint_x=0.12)
         chip_row.add_widget(chip_label)
 
         self.chip_buttons = []
         chip_values = [1, 5, 10, 25, 50, 100]
         for value in chip_values:
-            btn = Button(text=f'${value}', font_size=int(20 * FONT_SCALE), size_hint_x=1/len(chip_values),
+            btn = Button(text=f'${value}', font_size=20, size_hint_x=1/len(chip_values),
                         background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
             btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
             self.chip_buttons.append(btn)
@@ -1539,7 +1409,7 @@ class RouletteGame(BoxLayout):
 
         # Zero pocket (green oval at left end)
         zero_container = BoxLayout(size_hint_x=0.08, orientation='vertical')
-        zero_btn = Button(text='0', font_size=int(20 * FONT_SCALE), background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1),
+        zero_btn = Button(text='0', font_size=20, background_color=(0.0, 0.6, 0.0, 1), color=(1,1,1,1),
                          bold=True, size_hint_y=1.0)
         zero_btn.bind(on_press=lambda instance: self.place_bet('zero'))
         self.betting_buttons['zero'] = zero_btn
@@ -1563,7 +1433,7 @@ class RouletteGame(BoxLayout):
                 is_red = num in self.wheel.RED_NUMBERS
                 bg_color = (0.85, 0.15, 0.15, 1) if is_red else (0.15, 0.15, 0.15, 1)  # Casino red/black
 
-                num_btn = Button(text=str(num), font_size=int(18 * FONT_SCALE), background_color=bg_color,
+                num_btn = Button(text=str(num), font_size=18, background_color=bg_color,
                                color=(1,1,1,1), bold=True, size_hint_x=1/12)
                 num_btn.bind(on_press=lambda instance, n=num: self.place_bet(f'number_{n}'))
                 self.betting_buttons[f'number_{num}'] = num_btn
@@ -1584,21 +1454,21 @@ class RouletteGame(BoxLayout):
         dozens_container = BoxLayout(size_hint_x=0.92, spacing=2)
 
         # 1st 12 aligns with columns 1-4 (4/12 of 0.92 = 0.3067)
-        doz1_btn = Button(text='1st 12', font_size=int(17 * FONT_SCALE), background_color=(0.2, 0.6, 0.8, 1),  # Blue
+        doz1_btn = Button(text='1st 12', font_size=17, background_color=(0.2, 0.6, 0.8, 1),  # Blue
                          color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz1_btn.bind(on_press=lambda instance: self.place_bet('dozen1'))
         self.betting_buttons['dozen1'] = doz1_btn
         dozens_container.add_widget(doz1_btn)
 
         # 2nd 12 aligns with columns 5-8 (4/12 of 0.92 = 0.3067)
-        doz2_btn = Button(text='2nd 12', font_size=int(17 * FONT_SCALE), background_color=(0.8, 0.6, 0.2, 1),  # Orange/Gold
+        doz2_btn = Button(text='2nd 12', font_size=17, background_color=(0.8, 0.6, 0.2, 1),  # Orange/Gold
                          color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
         self.betting_buttons['dozen2'] = doz2_btn
         dozens_container.add_widget(doz2_btn)
 
         # 3rd 12 aligns with columns 9-12 (4/12 of 0.92 = 0.3067)
-        doz3_btn = Button(text='3rd 12', font_size=int(17 * FONT_SCALE), background_color=(0.6, 0.4, 0.8, 1),  # Purple
+        doz3_btn = Button(text='3rd 12', font_size=17, background_color=(0.6, 0.4, 0.8, 1),  # Purple
                          color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz3_btn.bind(on_press=lambda instance: self.place_bet('dozen3'))
         self.betting_buttons['dozen3'] = doz3_btn
@@ -1611,42 +1481,42 @@ class RouletteGame(BoxLayout):
         bottom_row = BoxLayout(size_hint_y=0.15, spacing=2)
 
         # 1to18 (neutral background)
-        low_btn = Button(text='1 to 18', font_size=int(16 * FONT_SCALE), background_color=(0.3, 0.3, 0.3, 1),
+        low_btn = Button(text='1 to 18', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
         low_btn.bind(on_press=lambda instance: self.place_bet('low'))
         self.betting_buttons['low'] = low_btn
         bottom_row.add_widget(low_btn)
 
         # EVEN (neutral background)
-        even_btn = Button(text='EVEN', font_size=int(16 * FONT_SCALE), background_color=(0.3, 0.3, 0.3, 1),
+        even_btn = Button(text='EVEN', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
                          color=(1,1,1,1), bold=True, size_hint_x=1/6)
         even_btn.bind(on_press=lambda instance: self.place_bet('even'))
         self.betting_buttons['even'] = even_btn
         bottom_row.add_widget(even_btn)
 
         # RED (red background)
-        red_btn = Button(text='RED', font_size=int(16 * FONT_SCALE), background_color=(0.8, 0.1, 0.1, 1),
+        red_btn = Button(text='RED', font_size=16, background_color=(0.8, 0.1, 0.1, 1),
                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
         red_btn.bind(on_press=lambda instance: self.place_bet('red'))
         self.betting_buttons['red'] = red_btn
         bottom_row.add_widget(red_btn)
 
         # BLACK (black background)
-        black_btn = Button(text='BLACK', font_size=int(16 * FONT_SCALE), background_color=(0.1, 0.1, 0.1, 1),
+        black_btn = Button(text='BLACK', font_size=16, background_color=(0.1, 0.1, 0.1, 1),
                           color=(1,1,1,1), bold=True, size_hint_x=1/6)
         black_btn.bind(on_press=lambda instance: self.place_bet('black'))
         self.betting_buttons['black'] = black_btn
         bottom_row.add_widget(black_btn)
 
         # ODD (neutral background)
-        odd_btn = Button(text='ODD', font_size=int(16 * FONT_SCALE), background_color=(0.3, 0.3, 0.3, 1),
+        odd_btn = Button(text='ODD', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
         odd_btn.bind(on_press=lambda instance: self.place_bet('odd'))
         self.betting_buttons['odd'] = odd_btn
         bottom_row.add_widget(odd_btn)
 
         # 19to36 (neutral background)
-        high_btn = Button(text='19 to 36', font_size=int(16 * FONT_SCALE), background_color=(0.3, 0.3, 0.3, 1),
+        high_btn = Button(text='19 to 36', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
                          color=(1,1,1,1), bold=True, size_hint_x=1/6)
         high_btn.bind(on_press=lambda instance: self.place_bet('high'))
         self.betting_buttons['high'] = high_btn
@@ -1658,22 +1528,22 @@ class RouletteGame(BoxLayout):
         # Bottom control buttons
         control_row = BoxLayout(size_hint_y=0.1, spacing=10, padding=[10, 5, 10, 5])
 
-        clear_btn = Button(text='CLEAR BETS', font_size=int(16 * FONT_SCALE), background_color=(0.6, 0.2, 0.2, 1),
+        clear_btn = Button(text='CLEAR BETS', font_size=16, background_color=(0.6, 0.2, 0.2, 1),
                           color=(1,1,1,1), bold=True)
         clear_btn.bind(on_press=self.clear_bets)
         control_row.add_widget(clear_btn)
 
-        rebet_btn = Button(text='REBET', font_size=int(16 * FONT_SCALE), background_color=(0.4, 0.4, 0.8, 1),
+        rebet_btn = Button(text='REBET', font_size=16, background_color=(0.4, 0.4, 0.8, 1),
                           color=(1,1,1,1), bold=True)
         rebet_btn.bind(on_press=self.rebet)
         control_row.add_widget(rebet_btn)
 
-        double_btn = Button(text='2X', font_size=int(16 * FONT_SCALE), background_color=(0.8, 0.6, 0.2, 1),
+        double_btn = Button(text='2X', font_size=16, background_color=(0.8, 0.6, 0.2, 1),
                           color=(1,1,1,1), bold=True)
         double_btn.bind(on_press=self.double_bets)
         control_row.add_widget(double_btn)
 
-        spin_btn = Button(text='SPIN', font_size=int(18 * FONT_SCALE), background_color=(0.2, 0.6, 0.2, 1),
+        spin_btn = Button(text='SPIN', font_size=18, background_color=(0.2, 0.6, 0.2, 1),
                          color=(1,1,1,1), bold=True)
         spin_btn.bind(on_press=self.spin_wheel)
         control_row.add_widget(spin_btn)
@@ -2013,7 +1883,7 @@ class RouletteApp(App):
         except:
             pass
         
-        Window.clearcolor = (0.6, 0.1, 0.1, 1)  # Red carpet background
+        Window.clearcolor = (0.0, 0.0, 0.0, 1)  # Black background for wheel area
         
         # Create game - ensure it fills screen
         game = RouletteGame()

@@ -1,17 +1,26 @@
 #!/bin/bash
-# Quick sync from Windows to WSL
-# Run in WSL: bash sync_to_wsl.sh
+# Sync files from Windows to WSL for buildozer
+# Usage: ./sync_to_wsl.sh
 
-WIN_DIR="/mnt/c/Users/aminz/Documents/GitHub/Roullett"
+# Adjust these paths to match your setup
+WINDOWS_DIR="/mnt/c/Users/aminz/OneDrive/Documents/GitHub/Roullett"
+# If your project is in a different location, use one of these:
+# WINDOWS_DIR="/mnt/c/Users/aminz/Documents/GitHub/Roullett"
 WSL_DIR="$HOME/Roullett"
 
 echo "Syncing files from Windows to WSL..."
-mkdir -p "$WSL_DIR"
+echo "From: $WINDOWS_DIR"
+echo "To: $WSL_DIR"
 
-cp -f "$WIN_DIR/buildozer.spec" "$WSL_DIR/buildozer.spec" && echo "✓ buildozer.spec"
-cp -f "$WIN_DIR/main.py" "$WSL_DIR/main.py" && echo "✓ main.py"
-rm -rf "$WSL_DIR/android_src" 2>/dev/null
-cp -rf "$WIN_DIR/android_src" "$WSL_DIR/android_src" && echo "✓ android_src/"
+# Copy main files
+cp -v "$WINDOWS_DIR/main.py" "$WSL_DIR/"
+cp -v "$WINDOWS_DIR/buildozer.spec" "$WSL_DIR/"
 
-echo ""
-echo "Sync complete! Files synced to: $WSL_DIR"
+# Copy other important files if they exist
+[ -f "$WINDOWS_DIR/requirements.txt" ] && cp -v "$WINDOWS_DIR/requirements.txt" "$WSL_DIR/"
+[ -d "$WINDOWS_DIR/sounds" ] && cp -rv "$WINDOWS_DIR/sounds" "$WSL_DIR/" 2>/dev/null || true
+[ -d "$WINDOWS_DIR/roulette_game" ] && cp -rv "$WINDOWS_DIR/roulette_game" "$WSL_DIR/" 2>/dev/null || true
+
+echo "Sync complete!"
+echo "Now you can run: cd ~/Roullett && buildozer android debug"
+
