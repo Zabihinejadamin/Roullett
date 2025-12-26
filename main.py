@@ -57,6 +57,8 @@ class RouletteWheel(Widget):
         self.wheel_rotations_after_drop = 0.0  # Track wheel rotations after ball drops
         self.ball_has_dropped = False  # Flag when ball drops from bumper
         self.angle_per_pocket = 2 * math.pi / len(self.NUMBERS)  # Pre-calculate angle per pocket
+        self.spin_start_time = 0.0  # Track when spinning started (for timeout)
+        self.max_spin_time = 30.0  # Maximum spin time in seconds (safety timeout)
 
         # Create win text box in center of roulette frame
         self.create_win_text_box()
@@ -118,6 +120,7 @@ class RouletteWheel(Widget):
         if not self.spinning:
             self.spinning = True
             self.spin_speed = random.uniform(5.0, 8.0)  # radians per second
+            self.spin_start_time = 0.0  # Will be set in update() with Clock.get_time()
             print("Wheel spinning!")
     
     def launch_ball(self):
@@ -128,6 +131,7 @@ class RouletteWheel(Widget):
             self.ball_settled = False  # Reset settled flag
             self.ball_has_dropped = False  # Reset drop flag
             self.wheel_rotations_after_drop = 0.0  # Reset wheel rotation counter
+            self.spin_start_time = 0.0  # Reset spin timer
             self.ball_angle = random.uniform(0, 2 * math.pi)
             self.ball_speed = random.uniform(8.0, 12.0)  # radians per second
             self.ball_rotations = 0.0  # Reset rotation counter
@@ -135,6 +139,29 @@ class RouletteWheel(Widget):
     
     def update(self, dt):
         """Update wheel and ball physics"""
+        # Track spin start time for timeout
+        if self.spinning and self.spin_start_time == 0.0:
+            self.spin_start_time = Clock.get_time()
+        
+        # Emergency timeout: Force stop if spinning too long (30 seconds)
+        if self.spinning and self.spin_start_time > 0.0:
+            elapsed_time = Clock.get_time() - self.spin_start_time
+            if elapsed_time > self.max_spin_time:
+                print(f"⚠️ EMERGENCY STOP: Spinning for {elapsed_time:.1f} seconds, forcing stop!")
+                self.spinning = False
+                self.spin_speed = 0.0
+                if self.ball_active:
+                    self.ball_active = False
+                    self.ball_speed = 0.0
+                    self.ball_settled = True
+                    if not self.ball_has_dropped:
+                        self.ball_has_dropped = True
+                        self.ball_on_bumper = False
+                    self.determine_ball_pocket()
+                    if self.winning_number is not None:
+                        pocket_index = self.NUMBERS.index(self.winning_number)
+                        self.ball_angle = (self.angle + (pocket_index * self.angle_per_pocket)) % (2 * math.pi)
+        
         # Update wheel rotation
         if self.spinning:
             old_angle = self.angle
@@ -169,6 +196,7 @@ class RouletteWheel(Widget):
                         #     self.game.ball_settle_sound.play()
 
                     print(f"Wheel and ball stopped after {self.wheel_rotations_after_drop:.1f} rotations!")
+                    self.spin_start_time = 0.0  # Reset spin timer
 
                     # Stop wheel spinning sound (disabled - only using ball sound)
                     # if hasattr(self, 'game') and self.game.wheel_spin_sound:
@@ -176,6 +204,7 @@ class RouletteWheel(Widget):
             elif self.spin_speed < 0.05:  # Fallback if ball hasn't dropped yet
                 self.spinning = False
                 self.spin_speed = 0.0
+                self.spin_start_time = 0.0  # Reset spin timer
                 print("Wheel stopped!")
         
         # Update ball
@@ -194,10 +223,21 @@ class RouletteWheel(Widget):
                     angle_diff += 2 * math.pi
                 self.ball_rotations += angle_diff / (2 * math.pi)
 
-                # Only allow drop after at least 3 full rotations
-                if self.ball_rotations >= 3.0:
+                # Force drop after exactly 4 rotations (maximum limit)
+                if self.ball_rotations >= 4.0:
+                    # FORCE drop after 4 rotations - no random chance needed
+                    self.ball_on_bumper = False
+                    self.ball_has_dropped = True  # Mark that ball has dropped
+                    self.ball_speed *= 0.7  # Speed reduction when dropping
+                    print(f"Ball dropped from bumper to number section after {self.ball_rotations:.1f} rotations! (forced at 4.0 limit)")
+                    
+                    # Stop the sound when ball drops
+                    if hasattr(self, 'game') and self.game.ball_drop_sound:
+                        self.game.ball_drop_sound.stop()
+                elif self.ball_rotations >= 3.0:
                     # Chance to drop from bumper to number section (more likely as speed decreases)
-                    drop_chance = (12.0 - self.ball_speed) / 12.0 * 0.02  # Small chance based on speed
+                    # But only between 3.0 and 4.0 rotations
+                    drop_chance = (12.0 - self.ball_speed) / 12.0 * 0.03  # Increased chance
                     if random.random() < drop_chance * dt * 180:  # Scale by framerate (360 FPS)
                         self.ball_on_bumper = False
                         self.ball_has_dropped = True  # Mark that ball has dropped
@@ -714,7 +754,7 @@ class RouletteWheel(Widget):
 
         # Store the previous numbers data
         if self.game.previous_numbers:
-            self.previous_numbers_data = self.game.previous_numbers[-10:] if len(self.game.previous_numbers) > 10 else self.game.previous_numbers[:]
+            self.previous_numbers_data = self.game.previous_numbers[-15:] if len(self.game.previous_numbers) > 15 else self.game.previous_numbers[:]
         else:
             self.previous_numbers_data = []
 
@@ -723,7 +763,7 @@ class RouletteWheel(Widget):
         font_size = 28
 
         if self.previous_numbers_data:
-            recent_numbers = self.previous_numbers_data[-10:] if len(self.previous_numbers_data) > 10 else self.previous_numbers_data
+            recent_numbers = self.previous_numbers_data[-15:] if len(self.previous_numbers_data) > 15 else self.previous_numbers_data
             recent_numbers.reverse()  # Most recent first
 
             for number in recent_numbers:
@@ -773,8 +813,8 @@ class RouletteGame(BoxLayout):
         self.balance = 1000
         self.last_win = None
 
-        # Track previous winning numbers
-        self.previous_numbers = []
+        # Track previous winning numbers - initialize with 15 random numbers
+        self.previous_numbers = [random.randint(0, 36) for _ in range(15)]
 
         # Initialize casino sounds
         self.load_sounds()
@@ -1426,9 +1466,9 @@ class RouletteGame(BoxLayout):
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
         info_row.add_widget(self.balance_label)
 
-        # Last bet label in the center - make it bigger to fit at least 20 characters
+        # Last bet label in the center - make it bigger to fit at least 23 characters
         self.last_bet_label = Label(text=f'LAST BET: ${self.last_bet}', font_size=18, color=(1,1,1,1),
-                                   halign='center', valign='middle', size_hint_x=0.6)
+                                   halign='center', valign='middle', size_hint_x=0.7)
         self.last_bet_label.bind(size=self.last_bet_label.setter('text_size'))
         info_row.add_widget(self.last_bet_label)
 
@@ -1911,8 +1951,8 @@ class RouletteGame(BoxLayout):
 
         # Add winning number to previous numbers list
         self.previous_numbers.append(win_number)
-        if len(self.previous_numbers) > 10:
-            self.previous_numbers.pop(0)  # Keep only last 10 numbers
+        if len(self.previous_numbers) > 15:
+            self.previous_numbers.pop(0)  # Keep only last 15 numbers
 
 
         # Update the previous numbers display
