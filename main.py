@@ -1676,9 +1676,9 @@ class RouletteGame(BoxLayout):
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
         info_row.add_widget(self.balance_label)
 
-        # Last bet label in the center - make it bigger to fit at least 23 characters
+        # Last bet label in the center - make it bigger to fit at least 25 characters (added 2 more)
         self.last_bet_label = Label(text=f'LAST BET: ${self.last_bet}', font_size=18, color=(1,1,1,1),
-                                   halign='center', valign='middle', size_hint_x=0.7)
+                                   halign='center', valign='middle', size_hint_x=0.76)
         self.last_bet_label.bind(size=self.last_bet_label.setter('text_size'))
         info_row.add_widget(self.last_bet_label)
 
