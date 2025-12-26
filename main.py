@@ -59,6 +59,8 @@ class RouletteWheel(Widget):
         self.angle_per_pocket = 2 * math.pi / len(self.NUMBERS)  # Pre-calculate angle per pocket
         self.spin_start_time = 0.0  # Track when spinning started (for timeout)
         self.max_spin_time = 30.0  # Maximum spin time in seconds (safety timeout)
+        self.prev_ball_angle = 0.0  # Previous ball angle for interpolation
+        self.prev_wheel_angle = 0.0  # Previous wheel angle for interpolation
 
         # Create win text box in center of roulette frame
         self.create_win_text_box()
@@ -165,8 +167,9 @@ class RouletteWheel(Widget):
         # Update wheel rotation
         if self.spinning:
             old_angle = self.angle
+            self.prev_wheel_angle = self.angle
             self.angle += self.spin_speed * dt
-            self.spin_speed *= 0.99917  # Adjusted friction for 360 FPS
+            self.spin_speed *= 0.99938  # Adjusted friction for 480 FPS
 
             # Track wheel rotations after ball drops
             if self.ball_has_dropped:
@@ -212,6 +215,7 @@ class RouletteWheel(Widget):
             # Ball drops from bumper to number section after some time
             if self.ball_on_bumper:
                 old_angle = self.ball_angle
+                self.prev_ball_angle = self.ball_angle
                 self.ball_angle += self.ball_speed * dt
 
                 # Normalize ball angle to prevent precision issues
@@ -238,7 +242,7 @@ class RouletteWheel(Widget):
                     # Chance to drop from bumper to number section (more likely as speed decreases)
                     # But only between 3.0 and 4.0 rotations
                     drop_chance = (12.0 - self.ball_speed) / 12.0 * 0.03  # Increased chance
-                    if random.random() < drop_chance * dt * 180:  # Scale by framerate (360 FPS)
+                    if random.random() < drop_chance * dt * 240:  # Scale by framerate (480 FPS)
                         self.ball_on_bumper = False
                         self.ball_has_dropped = True  # Mark that ball has dropped
                         self.ball_speed *= 0.7  # Speed reduction when dropping
@@ -248,13 +252,14 @@ class RouletteWheel(Widget):
                         if hasattr(self, 'game') and self.game.ball_drop_sound:
                             self.game.ball_drop_sound.stop()
 
-                self.ball_speed *= 0.99917  # Adjusted friction for 360 FPS
+                self.ball_speed *= 0.99938  # Adjusted friction for 480 FPS
             else:
                 # Ball on number section - moves with wheel and slows down
+                self.prev_ball_angle = self.ball_angle
                 self.ball_angle += (self.ball_speed + self.spin_speed) * dt  # Ball moves with wheel
                 # Normalize ball angle to prevent precision issues
                 self.ball_angle = self.ball_angle % (2 * math.pi)
-                self.ball_speed *= 0.995  # Adjusted friction for 360 FPS
+                self.ball_speed *= 0.99625  # Adjusted friction for 480 FPS
 
             # Ball stops only when wheel stops after 4 rotations (handled above)
             # No separate ball stopping condition needed
@@ -858,7 +863,7 @@ class RouletteGame(BoxLayout):
         self.wheel.update_previous_numbers_display()
 
         # Start update loop - Maximum FPS for ultra-smooth ball animation
-        Clock.schedule_interval(self.update, 1.0 / 360.0)  # 360 FPS for maximum smoothness
+        Clock.schedule_interval(self.update, 1.0 / 480.0)  # 480 FPS for ultra-smooth animation
 
         # Bind keyboard events
         Window.bind(on_key_down=self.on_key_down)
