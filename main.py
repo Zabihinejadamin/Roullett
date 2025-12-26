@@ -17,6 +17,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.core.text import Label as CoreLabel
 from kivy.core.audio import SoundLoader
+from kivy.core.image import Image as CoreImage
 import math
 import random
 import os
@@ -63,6 +64,22 @@ class RouletteWheel(Widget):
         # Previous numbers data and cached textures
         self.previous_numbers_data = []
         self.previous_numbers_textures = []
+        
+        # Load background texture for roulette frame
+        self.background_texture = None
+        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\10013168.jpg'
+        
+        if os.path.exists(texture_path):
+            try:
+                img = CoreImage(texture_path)
+                self.background_texture = img.texture
+                print(f"✓✓✓ SUCCESS: Loaded roulette background texture from: {os.path.abspath(texture_path)}")
+                print(f"  Texture size: {self.background_texture.size}")
+            except Exception as e:
+                print(f"✗ Failed to load texture from {texture_path}: {e}")
+        else:
+            print(f"✗✗✗ WARNING: Texture file not found at: {texture_path}")
+            print("  Falling back to solid blue-gray color.")
 
 
     def create_win_text_box(self):
@@ -254,15 +271,21 @@ class RouletteWheel(Widget):
         with self.canvas:
             # Wheel shadow removed - no shadow on roulette
 
-            # Base felt color
-            Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
-            Rectangle(pos=(0, 0), size=(self.width, self.height))
-
-            # Felt texture (subtle pattern)
-            Color(0.2, 0.2, 0.25, 0.3)  # Slightly lighter very dark blue-gray
-            for i in range(0, int(self.width), 20):
-                for j in range(0, int(self.height), 20):
-                    Ellipse(pos=(i, j), size=(2, 2))
+            # Draw background texture or fallback to solid color
+            if self.background_texture:
+                # Use texture if available - set white color to preserve texture colors
+                Color(1, 1, 1, 1)  # White tint preserves original texture colors
+                Rectangle(texture=self.background_texture, pos=(0, 0), size=(self.width, self.height))
+            else:
+                # Fallback to solid blue-gray color if texture not found
+                Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
+                Rectangle(pos=(0, 0), size=(self.width, self.height))
+                
+                # Felt texture (subtle pattern) - only if no texture loaded
+                Color(0.2, 0.2, 0.25, 0.3)  # Slightly lighter very dark blue-gray
+                for i in range(0, int(self.width), 20):
+                    for j in range(0, int(self.height), 20):
+                        Ellipse(pos=(i, j), size=(2, 2))
 
             # Draw previous winning numbers on the blue-gray background using cached textures
             if hasattr(self, 'previous_numbers_textures') and self.previous_numbers_textures:
@@ -765,6 +788,22 @@ class RouletteGame(BoxLayout):
         self.bets = {}
         self.total_bet = 0
         self.balance = 1000
+        
+        # Load background texture for betting table
+        self.betting_texture = None
+        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\10013168.jpg'
+        
+        if os.path.exists(texture_path):
+            try:
+                img = CoreImage(texture_path)
+                self.betting_texture = img.texture
+                print(f"✓✓✓ SUCCESS: Loaded betting table background texture from: {os.path.abspath(texture_path)}")
+                print(f"  Texture size: {self.betting_texture.size}")
+            except Exception as e:
+                print(f"✗ Failed to load texture from {texture_path}: {e}")
+        else:
+            print(f"✗✗✗ WARNING: Texture file not found at: {texture_path}")
+            print("  Falling back to solid blue-gray color.")
         self.last_bet = 0  # Track the last total bet value
         self.last_bets = {}  # Track the last bets dictionary for rebet
 
@@ -1357,10 +1396,16 @@ class RouletteGame(BoxLayout):
         """Create a traditional European roulette betting table interface"""
         betting_container = BoxLayout(size_hint_y=1.0, orientation='vertical', spacing=0, padding=0)
 
-        # Set blue-gray background for betting table
+        # Set background texture or fallback to solid color for betting table
         with betting_container.canvas.before:
-            Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
-            self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
+            if hasattr(self, 'betting_texture') and self.betting_texture:
+                # Use texture if available - set white color to preserve texture colors
+                Color(1, 1, 1, 1)  # White tint preserves original texture colors
+                self.bg_rect = Rectangle(texture=self.betting_texture, pos=betting_container.pos, size=betting_container.size)
+            else:
+                # Fallback to solid blue-gray color if texture not found
+                Color(0.15, 0.15, 0.2, 1)  # Very dark blue-gray felt
+                self.bg_rect = Rectangle(pos=betting_container.pos, size=betting_container.size)
 
         def update_bg(instance, value):
             self.bg_rect.pos = instance.pos
@@ -1369,6 +1414,12 @@ class RouletteGame(BoxLayout):
 
         # Top info bar
         info_row = BoxLayout(size_hint_y=0.08, spacing=5, padding=[5, 2, 5, 2])
+        
+        # Add spacer to push balance label to the right (equivalent to 4 characters)
+        # For font size 18, 4 characters ≈ 40-50 pixels
+        spacer = Widget(size_hint_x=None, width=50)
+        info_row.add_widget(spacer)
+        
         self.balance_label = Label(text=f'BALANCE: ${self.balance}', font_size=18, color=(1,1,0.8,1),
                                  halign='left', valign='middle')
         self.balance_label.bind(size=self.balance_label.setter('text_size'))
@@ -1380,10 +1431,19 @@ class RouletteGame(BoxLayout):
         self.last_bet_label.bind(size=self.last_bet_label.setter('text_size'))
         info_row.add_widget(self.last_bet_label)
 
+        # Add spacer to push total bet label to the left (equivalent to 4 characters)
+        # For font size 18, 4 characters ≈ 40-50 pixels
+        spacer_bet = Widget(size_hint_x=None, width=50)
+        info_row.add_widget(spacer_bet)
+
         self.bet_label = Label(text=f'TOTAL BET: ${self.total_bet}', font_size=18, color=(1,0.8,1,1),
                              halign='right', valign='middle')
         self.bet_label.bind(size=self.bet_label.setter('text_size'))
         info_row.add_widget(self.bet_label)
+        
+        # Add spacer on the right side of total bet label (equivalent to 4 characters)
+        spacer_right = Widget(size_hint_x=None, width=50)
+        info_row.add_widget(spacer_right)
         betting_container.add_widget(info_row)
 
         # Chip selection
