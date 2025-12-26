@@ -139,7 +139,7 @@ class RouletteWheel(Widget):
         if self.spinning:
             old_angle = self.angle
             self.angle += self.spin_speed * dt
-            self.spin_speed *= 0.9975  # Adjusted friction for 120 FPS
+            self.spin_speed *= 0.99917  # Adjusted friction for 360 FPS
 
             # Track wheel rotations after ball drops
             if self.ball_has_dropped:
@@ -198,7 +198,7 @@ class RouletteWheel(Widget):
                 if self.ball_rotations >= 3.0:
                     # Chance to drop from bumper to number section (more likely as speed decreases)
                     drop_chance = (12.0 - self.ball_speed) / 12.0 * 0.02  # Small chance based on speed
-                    if random.random() < drop_chance * dt * 60:  # Scale by framerate
+                    if random.random() < drop_chance * dt * 180:  # Scale by framerate (360 FPS)
                         self.ball_on_bumper = False
                         self.ball_has_dropped = True  # Mark that ball has dropped
                         self.ball_speed *= 0.7  # Speed reduction when dropping
@@ -208,13 +208,13 @@ class RouletteWheel(Widget):
                         if hasattr(self, 'game') and self.game.ball_drop_sound:
                             self.game.ball_drop_sound.stop()
 
-                self.ball_speed *= 0.9975  # Adjusted friction for 120 FPS
+                self.ball_speed *= 0.99917  # Adjusted friction for 360 FPS
             else:
                 # Ball on number section - moves with wheel and slows down
                 self.ball_angle += (self.ball_speed + self.spin_speed) * dt  # Ball moves with wheel
                 # Normalize ball angle to prevent precision issues
                 self.ball_angle = self.ball_angle % (2 * math.pi)
-                self.ball_speed *= 0.985  # Adjusted friction for 120 FPS
+                self.ball_speed *= 0.995  # Adjusted friction for 360 FPS
 
             # Ball stops only when wheel stops after 4 rotations (handled above)
             # No separate ball stopping condition needed
@@ -817,8 +817,8 @@ class RouletteGame(BoxLayout):
         # Initialize previous numbers display
         self.wheel.update_previous_numbers_display()
 
-        # Start update loop
-        Clock.schedule_interval(self.update, 1.0 / 120.0)  # 120 FPS for smoother animation
+        # Start update loop - Maximum FPS for ultra-smooth ball animation
+        Clock.schedule_interval(self.update, 1.0 / 360.0)  # 360 FPS for maximum smoothness
 
         # Bind keyboard events
         Window.bind(on_key_down=self.on_key_down)
