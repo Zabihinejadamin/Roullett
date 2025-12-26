@@ -791,7 +791,7 @@ class RouletteGame(BoxLayout):
         
         # Load background texture for betting table
         self.betting_texture = None
-        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\10013168.jpg'
+        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\2696.jpg'
         
         if os.path.exists(texture_path):
             try:
