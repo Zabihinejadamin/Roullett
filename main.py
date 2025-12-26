@@ -370,7 +370,15 @@ class RouletteWheel(Widget):
 
         # Draw outer bumper track (raised margin) with enhanced wood grain and 3D depth
         with self.canvas:
-            # Bumper track shadow removed
+            # Enhanced shadow cast by bumper track onto background (creates depth)
+            Color(0, 0, 0, 0.3)  # Soft shadow
+            Ellipse(pos=(center_x - bumper_outer + 3, center_y - bumper_outer - 3),
+                   size=(bumper_outer * 2, bumper_outer * 2))
+            
+            # Secondary shadow layer for more depth
+            Color(0, 0, 0, 0.2)  # Lighter shadow
+            Ellipse(pos=(center_x - bumper_outer + 5, center_y - bumper_outer - 5),
+                   size=(bumper_outer * 2, bumper_outer * 2))
 
             # Bumper track base (dark mahogany wood) - raised effect
             Color(0.12, 0.06, 0.03, 1)  # Even deeper mahogany for base
@@ -430,8 +438,21 @@ class RouletteWheel(Widget):
 
         # Draw outer wheel rim (polished mahogany wood) with enhanced 3D depth and material detail
         with self.canvas:
-            # Wheel rim shadow removed
+            # Enhanced shadow cast by wheel rim onto background (creates depth)
+            Color(0, 0, 0, 0.25)  # Soft shadow
+            Ellipse(pos=(center_x - radius + 2, center_y - radius - 2),
+                   size=(radius * 2, radius * 2))
+            
+            # Secondary shadow for more depth
+            Color(0, 0, 0, 0.15)  # Lighter shadow
+            Ellipse(pos=(center_x - radius + 4, center_y - radius - 4),
+                   size=(radius * 2, radius * 2))
 
+            # Base wood layer - recessed effect with shadow
+            Color(0.1, 0.05, 0.02, 1)  # Very dark shadow base
+            Ellipse(pos=(center_x - radius + 1, center_y - radius + 1),
+                   size=(radius * 2, radius * 2))
+            
             # Base wood layer - recessed effect
             Color(0.18, 0.09, 0.04, 1)  # Darker mahogany base
             Ellipse(pos=(center_x - radius, center_y - radius),
@@ -486,6 +507,17 @@ class RouletteWheel(Widget):
         
         # Draw inner center circle with enhanced wood inlay and 3D depth
         with self.canvas:
+            # Enhanced center hub shadow with multiple layers for depth
+            # Outer shadow (softer)
+            Color(0, 0, 0, 0.3)  # Soft outer shadow
+            Ellipse(pos=(center_x - inner_radius + 5, center_y - inner_radius + 5),
+                   size=(inner_radius * 2, inner_radius * 2))
+            
+            # Middle shadow
+            Color(0, 0, 0, 0.45)  # Medium shadow
+            Ellipse(pos=(center_x - inner_radius + 4, center_y - inner_radius + 4),
+                   size=(inner_radius * 2, inner_radius * 2))
+            
             # Center hub shadow for depth
             Color(0, 0, 0, 0.6)  # Deep shadow
             Ellipse(pos=(center_x - inner_radius + 3, center_y - inner_radius + 3),
@@ -562,27 +594,46 @@ class RouletteWheel(Widget):
                 # Get pocket color
                 color = self.get_pocket_color(number)
                 
-                # Draw pocket depth effects
-                # Pocket shadow for depth
-                Color(0, 0, 0, 0.3)  # Subtle shadow
+                # Draw pocket depth effects with enhanced shadows
+                # Deep pocket shadow for recessed effect
+                Color(0, 0, 0, 0.5)  # Stronger shadow for depth
                 segments = 12
                 for j in range(segments):
                     a1 = angle_start + (angle_end - angle_start) * (j / segments)
                     a2 = angle_start + (angle_end - angle_start) * ((j + 1) / segments)
 
-                    # Shadow points (slightly offset)
-                    x1_outer_shadow = center_x + math.cos(a1) * (pocket_outer + 1) + 1
-                    y1_outer_shadow = center_y + math.sin(a1) * (pocket_outer + 1) + 1
-                    x2_outer_shadow = center_x + math.cos(a2) * (pocket_outer + 1) + 1
-                    y2_outer_shadow = center_y + math.sin(a2) * (pocket_outer + 1) + 1
+                    # Shadow points (more offset for deeper shadow)
+                    x1_outer_shadow = center_x + math.cos(a1) * (pocket_outer + 2) + 2
+                    y1_outer_shadow = center_y + math.sin(a1) * (pocket_outer + 2) + 2
+                    x2_outer_shadow = center_x + math.cos(a2) * (pocket_outer + 2) + 2
+                    y2_outer_shadow = center_y + math.sin(a2) * (pocket_outer + 2) + 2
 
-                    x1_inner_shadow = center_x + math.cos(a1) * (pocket_inner + 1) + 1
-                    y1_inner_shadow = center_y + math.sin(a1) * (pocket_inner + 1) + 1
-                    x2_inner_shadow = center_x + math.cos(a2) * (pocket_inner + 1) + 1
-                    y2_inner_shadow = center_y + math.sin(a2) * (pocket_inner + 1) + 1
+                    x1_inner_shadow = center_x + math.cos(a1) * (pocket_inner + 2) + 2
+                    y1_inner_shadow = center_y + math.sin(a1) * (pocket_inner + 2) + 2
+                    x2_inner_shadow = center_x + math.cos(a2) * (pocket_inner + 2) + 2
+                    y2_inner_shadow = center_y + math.sin(a2) * (pocket_inner + 2) + 2
 
                     Triangle(points=[x1_outer_shadow, y1_outer_shadow, x2_outer_shadow, y2_outer_shadow, x1_inner_shadow, y1_inner_shadow])
                     Triangle(points=[x2_outer_shadow, y2_outer_shadow, x2_inner_shadow, y2_inner_shadow, x1_inner_shadow, y1_inner_shadow])
+                
+                # Additional inner shadow for deeper recessed effect
+                Color(0, 0, 0, 0.4)  # Inner shadow
+                for j in range(segments):
+                    a1 = angle_start + (angle_end - angle_start) * (j / segments)
+                    a2 = angle_start + (angle_end - angle_start) * ((j + 1) / segments)
+
+                    # Inner shadow points
+                    x1_inner = center_x + math.cos(a1) * pocket_inner
+                    y1_inner = center_y + math.sin(a1) * pocket_inner
+                    x2_inner = center_x + math.cos(a2) * pocket_inner
+                    y2_inner = center_y + math.sin(a2) * pocket_inner
+                    x1_center = center_x + math.cos(a1) * (pocket_inner * 0.85)
+                    y1_center = center_y + math.sin(a1) * (pocket_inner * 0.85)
+                    x2_center = center_x + math.cos(a2) * (pocket_inner * 0.85)
+                    y2_center = center_y + math.sin(a2) * (pocket_inner * 0.85)
+
+                    Triangle(points=[x1_inner, y1_inner, x2_inner, y2_inner, x1_center, y1_center])
+                    Triangle(points=[x2_inner, y2_inner, x2_center, y2_center, x1_center, y1_center])
 
                 # Draw pocket filled segment using multiple small rectangles with depth
                 # Base pocket color (slightly darker for depth)
@@ -726,8 +777,19 @@ class RouletteWheel(Widget):
                 ball_y = center_y + math.sin(ball_angle) * ball_track_radius
                 ball_size = 18
                 
-                # Ball shadow (more realistic)
-                Color(0, 0, 0, 0.4)
+                # Enhanced ball shadow with multiple layers for depth
+                # Outer shadow (softer, larger)
+                Color(0, 0, 0, 0.25)
+                Ellipse(pos=(ball_x - ball_size/2 + 5, ball_y - ball_size/2 - 3),
+                        size=(ball_size + 4, ball_size + 4))
+                
+                # Middle shadow
+                Color(0, 0, 0, 0.35)
+                Ellipse(pos=(ball_x - ball_size/2 + 4, ball_y - ball_size/2 - 2),
+                        size=(ball_size + 2, ball_size + 2))
+                
+                # Main shadow (more realistic)
+                Color(0, 0, 0, 0.5)
                 Ellipse(pos=(ball_x - ball_size/2 + 3, ball_y - ball_size/2 - 1),
                         size=(ball_size, ball_size))
 
@@ -762,6 +824,17 @@ class RouletteWheel(Widget):
             dolly_pointer_length = inner_radius * 0.35  # Pointer extends outward
             pointer_width = 18  # Width of pointer at base
             
+            # Enhanced dolly base shadow with multiple layers for depth
+            # Outer shadow (softer)
+            Color(0, 0, 0, 0.3)
+            Ellipse(pos=(center_x - dolly_base_radius - 3, center_y - dolly_base_radius - 3),
+                   size=(dolly_base_radius * 2 + 6, dolly_base_radius * 2 + 6))
+            
+            # Middle shadow
+            Color(0, 0, 0, 0.4)
+            Ellipse(pos=(center_x - dolly_base_radius - 2.5, center_y - dolly_base_radius - 2.5),
+                   size=(dolly_base_radius * 2 + 5, dolly_base_radius * 2 + 5))
+            
             # Dolly base shadow for depth
             Color(0, 0, 0, 0.5)
             Ellipse(pos=(center_x - dolly_base_radius - 2, center_y - dolly_base_radius - 2),
@@ -794,9 +867,31 @@ class RouletteWheel(Widget):
                 Color(0.85, 0.7, 0.3, 0.6)  # Lighter ring highlight
                 Line(circle=(center_x, center_y, ring_radius - 0.5), width=0.5)
             
-            # Pointer shadow for depth
-            Color(0, 0, 0, 0.4)
+            # Enhanced pointer shadow with multiple layers for depth
             pointer_angle = math.pi / 2  # Points upward (toward top)
+            
+            # Outer shadow (softer, larger)
+            Color(0, 0, 0, 0.25)
+            shadow_offset = 3
+            shadow_points_outer = [
+                center_x, center_y + dolly_base_radius + shadow_offset,
+                center_x - pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset,
+                center_x + pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset
+            ]
+            Triangle(points=shadow_points_outer)
+            
+            # Middle shadow
+            Color(0, 0, 0, 0.35)
+            shadow_offset = 2.5
+            shadow_points_middle = [
+                center_x, center_y + dolly_base_radius + shadow_offset,
+                center_x - pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset,
+                center_x + pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset
+            ]
+            Triangle(points=shadow_points_middle)
+            
+            # Main pointer shadow for depth
+            Color(0, 0, 0, 0.5)
             shadow_offset = 2
             shadow_points = [
                 center_x, center_y + dolly_base_radius + shadow_offset,
