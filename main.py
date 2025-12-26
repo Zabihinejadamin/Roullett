@@ -743,6 +743,9 @@ class RouletteGame(BoxLayout):
         self.padding = 0  # Remove all padding to eliminate gaps
         self.spacing = 0  # Remove spacing between wheel and betting table
         
+        # CRITICAL: Ensure this widget fills the entire screen
+        self.size_hint = (1, 1)
+        
         # Game state (must be set before create_ui)
         self.balance = 1000
         self.last_win = None
@@ -1871,33 +1874,133 @@ class RouletteApp(App):
     """Main Kivy App"""
     
     def build(self):
-        # On Android, Kivy automatically uses full screen - don't set Window.size
+        # NEVER set Window.size on Android - it breaks fullscreen
         # Only set window size for desktop testing
         try:
-            # Try to detect if we're on Android
             from kivy.utils import platform
             if platform != 'android':
                 Window.size = (450, 700)  # Desktop testing size
         except:
-            # If detection fails, try setting size anyway (will fail silently on Android)
-            try:
-                Window.size = (450, 700)
-            except:
-                pass  # On Android, Window.size may not be settable
+            pass
         
         Window.clearcolor = (0.0, 0.0, 0.0, 1)  # Black background for wheel area
         
-        # Create game
+        # Create game - ensure it fills screen
         game = RouletteGame()
+        game.size_hint = (1, 1)  # Force fullscreen
+        
         return game
     
     def on_start(self):
         """Called when app starts"""
         print("Roulette game started!")
+        
+        # On Android, force fullscreen immediately
+        try:
+            from kivy.utils import platform
+            if platform == 'android':
+                # Force fullscreen using Android APIs
+                from jnius import autoclass
+                # Try to use our custom FullscreenPythonActivity, fallback to PythonActivity
+                try:
+                    Activity = autoclass('org.kivy.android.FullscreenPythonActivity')
+                except:
+                    Activity = autoclass('org.kivy.android.PythonActivity')
+                activity = Activity.mActivity
+                WindowManager = autoclass('android.view.WindowManager$LayoutParams')
+                View = autoclass('android.view.View')
+                
+                DisplayMetrics = autoclass('android.util.DisplayMetrics')
+                
+                def force_fullscreen():
+                    try:
+                        window = activity.getWindow()
+                        
+                        # Get actual screen size
+                        display = activity.getWindowManager().getDefaultDisplay()
+                        metrics = DisplayMetrics()
+                        display.getRealMetrics(metrics)
+                        screen_width = metrics.widthPixels
+                        screen_height = metrics.heightPixels
+                        
+                        print(f"DEBUG: Screen size detected: {screen_width}x{screen_height}")
+                        print(f"DEBUG: Window size before fix: {Window.size}")
+                        
+                        # Clear any windowed mode flags FIRST
+                        window.clearFlags(WindowManager.FLAG_FORCE_NOT_FULLSCREEN)
+                        
+                        # Set fullscreen flags
+                        window.addFlags(
+                            WindowManager.FLAG_FULLSCREEN |
+                            WindowManager.FLAG_LAYOUT_IN_SCREEN |
+                            WindowManager.FLAG_LAYOUT_NO_LIMITS
+                        )
+                        
+                        # Force window to fill screen
+                        params = window.getAttributes()
+                        params.width = WindowManager.MATCH_PARENT
+                        params.height = WindowManager.MATCH_PARENT
+                        params.x = 0
+                        params.y = 0
+                        window.setAttributes(params)
+                        
+                        # Also set decor view layout params
+                        decor_view = window.getDecorView()
+                        current_params = decor_view.getLayoutParams()
+                        if current_params:
+                            current_params.width = WindowManager.MATCH_PARENT
+                            current_params.height = WindowManager.MATCH_PARENT
+                            decor_view.setLayoutParams(current_params)
+                        
+                        # Immersive fullscreen
+                        decor_view.setSystemUiVisibility(
+                            View.SYSTEM_UI_FLAG_FULLSCREEN |
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        )
+                        
+                        print(f"DEBUG: Fullscreen applied! Screen: {screen_width}x{screen_height}")
+                    except Exception as e:
+                        print(f"DEBUG: Error in force_fullscreen: {e}")
+                        import traceback
+                        traceback.print_exc()
+                
+                # Apply immediately - try both direct and on UI thread
+                try:
+                    force_fullscreen()  # Try direct call
+                except:
+                    pass
+                activity.runOnUiThread(force_fullscreen)  # Also on UI thread
+                
+                # Also ensure root widget fills screen
+                if hasattr(self, 'root') and self.root:
+                    self.root.size_hint = (1, 1)
+                    # Schedule multiple checks to ensure it stays fullscreen
+                    Clock.schedule_once(lambda dt: self._ensure_fullscreen(), 0.1)
+                    Clock.schedule_once(lambda dt: self._ensure_fullscreen(), 0.5)
+                    Clock.schedule_once(lambda dt: self._ensure_fullscreen(), 1.0)
+                    Window.bind(size=self._on_window_size)
+        except Exception as e:
+            print(f"Fullscreen setup error: {e}")
+            import traceback
+            traceback.print_exc()
 
         # Start casino ambiance (disabled - only using ball sound)
         # if hasattr(self, 'casino_ambiance') and self.casino_ambiance:
         #     self.casino_ambiance.play()
+    
+    def _ensure_fullscreen(self):
+        """Ensure root widget fills screen"""
+        if hasattr(self, 'root') and self.root:
+            self.root.size_hint = (1, 1)
+    
+    def _on_window_size(self, instance, size):
+        """Handle window size changes"""
+        if hasattr(self, 'root') and self.root:
+            self.root.size_hint = (1, 1)
     
     def on_pause(self):
         """Called when app is paused (mobile)"""

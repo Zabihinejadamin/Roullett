@@ -96,10 +96,10 @@ android.permissions = INTERNET
 #android.logcat_python = 0
 
 # (str) Android entry point
-#android.entrypoint = org.kivy.android.PythonActivity
+android.entrypoint = org.kivy.android.FullscreenPythonActivity
 
 # (str) Android app theme, default is ok for Kivy-based app
-# android.apptheme = "@android:style/Theme.NoTitleBar"
+android.apptheme = "@android:style/Theme.NoTitleBar.Fullscreen"
 
 # (list) Pattern to whitelist for the whole project
 #android.whitelist =
@@ -118,7 +118,7 @@ android.permissions = INTERNET
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-#android.add_src =
+android.add_src = android_src
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this blank, OUYA support will not be enabled
@@ -143,7 +143,7 @@ android.permissions = INTERNET
 #android.logcat_python = 0
 
 # (str) Android entry point
-#android.entrypoint = org.kivy.android.PythonActivity
+#android.entrypoint = org.kivy.android.FullscreenPythonActivity
 
 # (str) Full name including package path of the Java class that implements Android Activity
 # use '.' as separator.
@@ -154,7 +154,7 @@ android.permissions = INTERNET
 #android.service_class_name = org.kivy.android.PythonService
 
 # (str) Android app theme, default is ok for Kivy-based app
-# android.apptheme = "@android:style/Theme.NoTitleBar"
+#android.apptheme = "@android:style/Theme.NoTitleBar.Fullscreen"
 
 # (list) Pattern to whitelist for the whole project
 #android.whitelist =
@@ -173,7 +173,7 @@ android.permissions = INTERNET
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-#android.add_src =
+#android.add_src = android_src
 
 # (str) OUYA Console category. Should be one of GAME or APP
 # If you leave this blank, OUYA support will not be enabled
