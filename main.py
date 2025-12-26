@@ -71,7 +71,7 @@ class RouletteWheel(Widget):
         
         # Load background texture for roulette frame
         self.background_texture = None
-        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\10013168.jpg'
+        texture_path = r'C:\Users\aminz\OneDrive\Documents\GitHub\Roullett\roulette_game\assets\textures\close-up-wood-texture.jpg'
         
         if os.path.exists(texture_path):
             try:
@@ -1376,11 +1376,11 @@ class RouletteGame(BoxLayout):
         outside_row.add_widget(odd_btn)
 
         # High/Low
-        low_btn = Button(text='1-18', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        low_btn = Button(text='1-18', font_size=10, background_color=(0.2, 0.4, 0.8, 1), color=(1,1,1,1))  # Blue
         low_btn.bind(on_press=lambda instance: self.place_bet('low'))
         outside_row.add_widget(low_btn)
 
-        high_btn = Button(text='19-36', font_size=10, background_color=(0.2, 0.6, 0.2, 1), color=(1,1,1,1))
+        high_btn = Button(text='19-36', font_size=10, background_color=(0.8, 0.4, 0.2, 1), color=(1,1,1,1))  # Orange/Red
         high_btn.bind(on_press=lambda instance: self.place_bet('high'))
         outside_row.add_widget(high_btn)
 
@@ -1587,8 +1587,8 @@ class RouletteGame(BoxLayout):
         # Bottom row: Six sections (each spanning 2 columns)
         bottom_row = BoxLayout(size_hint_y=0.15, spacing=2)
 
-        # 1to18 (neutral background)
-        low_btn = Button(text='1 to 18', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
+        # 1to18 (blue background)
+        low_btn = Button(text='1 to 18', font_size=16, background_color=(0.2, 0.4, 0.8, 1),  # Blue
                         color=(1,1,1,1), bold=True, size_hint_x=1/6)
         low_btn.bind(on_press=lambda instance: self.place_bet('low'))
         self.betting_buttons['low'] = low_btn
@@ -1622,8 +1622,8 @@ class RouletteGame(BoxLayout):
         self.betting_buttons['odd'] = odd_btn
         bottom_row.add_widget(odd_btn)
 
-        # 19to36 (neutral background)
-        high_btn = Button(text='19 to 36', font_size=16, background_color=(0.3, 0.3, 0.3, 1),
+        # 19to36 (orange/red background)
+        high_btn = Button(text='19 to 36', font_size=16, background_color=(0.8, 0.4, 0.2, 1),  # Orange/Red
                          color=(1,1,1,1), bold=True, size_hint_x=1/6)
         high_btn.bind(on_press=lambda instance: self.place_bet('high'))
         self.betting_buttons['high'] = high_btn
