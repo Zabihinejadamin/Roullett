@@ -2027,6 +2027,9 @@ class RouletteGame(BoxLayout):
                 if hasattr(self.wheel, 'win_text_label'):
                     self.wheel.win_text_label.text = ""
                 
+                # Reset winning number highlight on betting table
+                self.reset_number_button_colors()
+                
                 # Start the sequence: spin wheel and launch ball
                 self.wheel.start_spin()
                 self.wheel.launch_ball()
@@ -2167,6 +2170,9 @@ class RouletteGame(BoxLayout):
 
         # Update the previous numbers display
         self.wheel.update_previous_numbers_display()
+        
+        # Highlight the winning number on the betting table
+        self.highlight_winning_number(win_number)
 
         print(f"Winning number: {win_number}")
 
@@ -2201,6 +2207,41 @@ class RouletteGame(BoxLayout):
             self.update_betting_buttons()
             if hasattr(self, 'betting_container') and self.betting_container:
                 self.draw_coins_on_table(self.betting_container)
+    
+    def highlight_winning_number(self, winning_number):
+        """Highlight the winning number button on the betting table"""
+        # Reset all number buttons to their original colors first
+        self.reset_number_button_colors()
+        
+        # Find and highlight the winning number button
+        button_key = f'number_{winning_number}'
+        if button_key in self.betting_buttons:
+            winning_button = self.betting_buttons[button_key]
+            # Store original color if not already stored
+            if not hasattr(winning_button, 'original_bg_color'):
+                winning_button.original_bg_color = winning_button.background_color[:]
+            
+            # Highlight with bright gold/yellow to emphasize
+            winning_button.background_color = (1.0, 0.9, 0.2, 1)  # Bright gold
+            winning_button.color = (0, 0, 0, 1)  # Black text for contrast
+            # Make font bigger and bolder
+            winning_button.font_size = 22
+            winning_button.bold = True
+    
+    def reset_number_button_colors(self):
+        """Reset all number buttons to their original colors"""
+        for button_key, button in self.betting_buttons.items():
+            if button_key.startswith('number_'):
+                num = int(button_key.split('_')[1])
+                # Restore original color
+                is_red = num in self.wheel.RED_NUMBERS
+                original_bg = (0.85, 0.15, 0.15, 1) if is_red else (0.15, 0.15, 0.15, 1)
+                button.background_color = original_bg
+                button.color = (1, 1, 1, 1)  # White text
+                button.font_size = 18  # Reset font size
+                button.bold = True  # Keep bold
+                if hasattr(button, 'original_bg_color'):
+                    delattr(button, 'original_bg_color')
 
 
 class RouletteApp(App):
