@@ -273,8 +273,8 @@ class RouletteWheel(Widget):
 
             # Draw background texture or fallback to solid color
             if self.background_texture:
-                # Use texture if available - set white color to preserve texture colors
-                Color(1, 1, 1, 1)  # White tint preserves original texture colors
+                # Use texture if available - darker tint for more subdued appearance
+                Color(0.7, 0.7, 0.7, 1)  # Darker gray tint to darken the texture
                 Rectangle(texture=self.background_texture, pos=(0, 0), size=(self.width, self.height))
             else:
                 # Fallback to solid blue-gray color if texture not found
@@ -298,8 +298,8 @@ class RouletteWheel(Widget):
                     # White background for each number
                     Color(1, 1, 1, 1.0)  # White background
                     bg_x = start_x - 15
-                    # Most recent number (i=0) at bottom (y=0), older numbers above it
-                    bg_y = i * line_height
+                    # Most recent number (i=0) at bottom (y=40), older numbers above it
+                    bg_y = i * line_height + 40  # Add 40 pixels space at bottom
                     Rectangle(pos=(bg_x, bg_y), size=(70, 40))
 
                     # Add a black border around each number area for definition
@@ -308,8 +308,8 @@ class RouletteWheel(Widget):
 
                     # Draw cached texture for stable rendering
                     num_x = start_x
-                    # Most recent number (i=0) at bottom (y=0), older numbers above it
-                    num_y = i * line_height
+                    # Most recent number (i=0) at bottom (y=40), older numbers above it
+                    num_y = i * line_height + 40  # Add 40 pixels space at bottom
                     if texture_data['texture']:
                         # Ensure proper blending for colored text
                         Color(1, 1, 1, 1)  # White tint to preserve original colors
@@ -1300,8 +1300,9 @@ class RouletteGame(BoxLayout):
         self.chip_buttons = []
         chip_values = [1, 5, 10, 25, 50, 100]
         for value in chip_values:
+            bg_color, text_color = self.get_chip_color(value)
             btn = Button(text=f'${value}', font_size=10, size_hint_x=1/len(chip_values),
-                        background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
+                        background_color=bg_color, color=text_color)
             btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
             self.chip_buttons.append(btn)
             chip_row.add_widget(btn)
@@ -1399,8 +1400,8 @@ class RouletteGame(BoxLayout):
         # Set background texture or fallback to solid color for betting table
         with betting_container.canvas.before:
             if hasattr(self, 'betting_texture') and self.betting_texture:
-                # Use texture if available - set white color to preserve texture colors
-                Color(1, 1, 1, 1)  # White tint preserves original texture colors
+                # Use texture if available - darker tint for more subdued appearance
+                Color(0.7, 0.7, 0.7, 1)  # Darker gray tint to darken the texture
                 self.bg_rect = Rectangle(texture=self.betting_texture, pos=betting_container.pos, size=betting_container.size)
             else:
                 # Fallback to solid blue-gray color if texture not found
@@ -1454,8 +1455,9 @@ class RouletteGame(BoxLayout):
         self.chip_buttons = []
         chip_values = [1, 5, 10, 25, 50, 100]
         for value in chip_values:
+            bg_color, text_color = self.get_chip_color(value)
             btn = Button(text=f'${value}', font_size=20, size_hint_x=1/len(chip_values),
-                        background_color=(0.8, 0.6, 0.2, 1), color=(0,0,0,1))
+                        background_color=bg_color, color=text_color)
             btn.bind(on_press=lambda instance, val=value: self.select_chip(val))
             self.chip_buttons.append(btn)
             chip_row.add_widget(btn)
@@ -1521,7 +1523,7 @@ class RouletteGame(BoxLayout):
         dozens_container.add_widget(doz1_btn)
 
         # 2nd 12 aligns with columns 5-8 (4/12 of 0.92 = 0.3067)
-        doz2_btn = Button(text='2nd 12', font_size=17, background_color=(0.8, 0.6, 0.2, 1),  # Orange/Gold
+        doz2_btn = Button(text='2nd 12', font_size=17, background_color=(0.2, 0.7, 0.3, 1),  # Green
                          color=(1,1,1,1), bold=True, size_hint_x=4/12)
         doz2_btn.bind(on_press=lambda instance: self.place_bet('dozen2'))
         self.betting_buttons['dozen2'] = doz2_btn
@@ -1598,7 +1600,7 @@ class RouletteGame(BoxLayout):
         rebet_btn.bind(on_press=self.rebet)
         control_row.add_widget(rebet_btn)
 
-        double_btn = Button(text='2X', font_size=16, background_color=(0.8, 0.6, 0.2, 1),
+        double_btn = Button(text='2X', font_size=16, background_color=(0.2, 0.7, 0.7, 1),  # Teal/Cyan
                           color=(1,1,1,1), bold=True)
         double_btn.bind(on_press=self.double_bets)
         control_row.add_widget(double_btn)
@@ -1614,6 +1616,18 @@ class RouletteGame(BoxLayout):
         self.update_chip_buttons()
         self.update_betting_buttons()
 
+    def get_chip_color(self, value):
+        """Get casino-standard color for chip value"""
+        chip_colors = {
+            1: ((1.0, 1.0, 1.0, 1), (0, 0, 0, 1)),      # White chip, black text
+            5: ((0.8, 0.2, 0.2, 1), (1, 1, 1, 1)),       # Red chip, white text
+            10: ((0.2, 0.4, 0.8, 1), (1, 1, 1, 1)),      # Blue chip, white text
+            25: ((0.2, 0.6, 0.2, 1), (1, 1, 1, 1)),      # Green chip, white text
+            50: ((0.9, 0.7, 0.2, 1), (0, 0, 0, 1)),      # Orange/Yellow chip, black text
+            100: ((0.1, 0.1, 0.1, 1), (1, 1, 1, 1))      # Black chip, white text
+        }
+        return chip_colors.get(value, ((0.8, 0.6, 0.2, 1), (0, 0, 0, 1)))  # Default fallback
+
     def select_chip(self, value):
         """Select chip value for betting"""
         self.current_chip = value
@@ -1624,10 +1638,19 @@ class RouletteGame(BoxLayout):
         """Update chip button colors to show selected chip"""
         for i, btn in enumerate(self.chip_buttons):
             value = [1, 5, 10, 25, 50, 100][i]
+            bg_color, text_color = self.get_chip_color(value)
             if value == self.current_chip:
-                btn.background_color = (1.0, 0.8, 0.0, 1)  # Gold for selected
+                # Highlight selected chip with a brighter/lighter version
+                r, g, b = bg_color[0], bg_color[1], bg_color[2]
+                # Make it brighter by increasing each component
+                highlighted_r = min(1.0, r * 1.3 if r < 0.5 else r + 0.2)
+                highlighted_g = min(1.0, g * 1.3 if g < 0.5 else g + 0.2)
+                highlighted_b = min(1.0, b * 1.3 if b < 0.5 else b + 0.2)
+                btn.background_color = (highlighted_r, highlighted_g, highlighted_b, 1.0)
+                btn.color = text_color
             else:
-                btn.background_color = (0.8, 0.6, 0.2, 1)  # Brown for unselected
+                btn.background_color = bg_color
+                btn.color = text_color
 
     def update_betting_buttons(self):
         """Update all betting button text to show current bet amounts"""
