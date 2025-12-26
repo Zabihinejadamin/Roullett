@@ -6,7 +6,7 @@ A beautiful 2D European roulette simulation for Android and iOS using Kivy.
 
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.graphics import Color, Ellipse, Line, Rectangle, PushMatrix, PopMatrix, Rotate, Triangle, InstructionGroup
+from kivy.graphics import Color, Ellipse, Line, Rectangle, PushMatrix, PopMatrix, Rotate, Triangle, InstructionGroup, Translate, Scale
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.label import Label
@@ -368,7 +368,7 @@ class RouletteWheel(Widget):
             Color(0.5, 0.35, 0.15, 1)  # Lighter wood
             Line(rectangle=(4, 4, self.width-8, self.height-8), width=2)
 
-        # Draw outer bumper track (raised margin) with wood grain and 3D depth
+        # Draw outer bumper track (raised margin) with enhanced wood grain and 3D depth
         with self.canvas:
             # Bumper track shadow removed
 
@@ -382,10 +382,22 @@ class RouletteWheel(Widget):
             Ellipse(pos=(center_x - bumper_outer + 1, center_y - bumper_outer + 1),
                    size=(bumper_outer * 2 - 2, bumper_outer * 2 - 2))
 
-            # Wood grain layers for texture with depth
-            Color(0.25, 0.12, 0.06, 1)  # Medium mahogany
-            Line(circle=(center_x, center_y, bumper_outer), width=6)
-            Line(circle=(center_x, center_y, bumper_inner + 2), width=4)
+            # Enhanced wood grain layers for realistic texture
+            for grain_radius in [bumper_outer, bumper_outer * 0.99, bumper_inner + 2, (bumper_inner + 2) * 0.99]:
+                Color(0.25, 0.12, 0.06, 1)  # Medium mahogany
+                Line(circle=(center_x, center_y, grain_radius), width=3)
+            
+            # Additional radial wood grain for texture
+            for i in range(0, 360, 20):  # Every 20 degrees
+                grain_angle = math.radians(i)
+                grain_start = bumper_inner + 3
+                grain_end = bumper_outer - 1
+                x1 = center_x + math.cos(grain_angle) * grain_start
+                y1 = center_y + math.sin(grain_angle) * grain_start
+                x2 = center_x + math.cos(grain_angle) * grain_end
+                y2 = center_y + math.sin(grain_angle) * grain_end
+                Color(0.22, 0.11, 0.05, 0.5)  # Subtle grain lines
+                Line(points=[x1, y1, x2, y2], width=1)
 
             # Inner shadow for depth
             Color(0.1, 0.05, 0.02, 0.8)  # Dark inner shadow
@@ -402,16 +414,21 @@ class RouletteWheel(Widget):
             Ellipse(pos=(center_x - bumper_outer + 2, center_y - bumper_outer + 2),
                    size=(bumper_outer * 1.8, bumper_outer * 1.8))
 
-            # Metallic rim with depth
+            # Enhanced metallic rim with depth and polish
             Color(0.6, 0.5, 0.3, 1)  # Antique brass
-            Line(circle=(center_x, center_y, bumper_outer), width=1)
-            Line(circle=(center_x, center_y, bumper_inner), width=1)
+            Line(circle=(center_x, center_y, bumper_outer), width=2)
+            Line(circle=(center_x, center_y, bumper_inner), width=2)
+            
+            # Rim polish highlights
+            Color(0.85, 0.75, 0.45, 1)  # Bright brass highlight
+            Line(circle=(center_x, center_y, bumper_outer - 0.5), width=1)
+            Line(circle=(center_x, center_y, bumper_inner + 0.5), width=1)
+            
+            # Rim shine effect
+            Color(0.95, 0.85, 0.5, 0.6)  # Very bright shine
+            Line(circle=(center_x, center_y, bumper_outer - 1), width=0.5)
 
-            # Rim highlight
-            Color(0.8, 0.7, 0.4, 0.8)  # Bright brass highlight
-            Line(circle=(center_x, center_y, bumper_outer - 0.5), width=0.5)
-
-        # Draw outer wheel rim (polished mahogany wood) with 3D depth
+        # Draw outer wheel rim (polished mahogany wood) with enhanced 3D depth and material detail
         with self.canvas:
             # Wheel rim shadow removed
 
@@ -420,15 +437,27 @@ class RouletteWheel(Widget):
             Ellipse(pos=(center_x - radius, center_y - radius),
                    size=(radius * 2, radius * 2))
 
-            # Main wood surface - raised
+            # Main wood surface - raised with texture
             Color(0.22, 0.12, 0.06, 1)  # Rich mahogany
             Ellipse(pos=(center_x - radius + 2, center_y - radius + 2),
                    size=(radius * 2 - 4, radius * 2 - 4))
 
-            # Wood grain rings for texture with depth
-            Color(0.28, 0.16, 0.08, 1)  # Medium mahogany
-            Line(circle=(center_x, center_y, radius), width=4)
-            Line(circle=(center_x, center_y, radius * 0.95), width=3)
+            # Enhanced wood grain rings for realistic texture
+            for grain_ring in [radius, radius * 0.98, radius * 0.96, radius * 0.94]:
+                Color(0.28, 0.16, 0.08, 1)  # Medium mahogany grain
+                Line(circle=(center_x, center_y, grain_ring), width=2)
+            
+            # Additional wood grain detail - radial lines for realistic wood texture
+            for i in range(0, 360, 15):  # Every 15 degrees
+                grain_angle = math.radians(i)
+                grain_start = radius * 0.92
+                grain_end = radius * 0.98
+                x1 = center_x + math.cos(grain_angle) * grain_start
+                y1 = center_y + math.sin(grain_angle) * grain_start
+                x2 = center_x + math.cos(grain_angle) * grain_end
+                y2 = center_y + math.sin(grain_angle) * grain_end
+                Color(0.25, 0.14, 0.07, 0.6)  # Subtle grain lines
+                Line(points=[x1, y1, x2, y2], width=1)
 
             # Inner shadow for depth
             Color(0.15, 0.08, 0.04, 0.7)  # Inner shadow
@@ -448,8 +477,14 @@ class RouletteWheel(Widget):
             Color(0.6, 0.4, 0.2, 0.4)  # Bright surface highlight
             Ellipse(pos=(center_x - radius + 3, center_y - radius + 3),
                    size=(radius * 1.5, radius * 1.5))
+            
+            # Metallic rim detail - polished brass edge
+            Color(0.7, 0.55, 0.25, 1)  # Polished brass
+            Line(circle=(center_x, center_y, radius), width=2)
+            Color(0.9, 0.75, 0.35, 1)  # Bright brass highlight
+            Line(circle=(center_x, center_y, radius - 0.5), width=1)
         
-        # Draw inner center circle with wood inlay and 3D depth
+        # Draw inner center circle with enhanced wood inlay and 3D depth
         with self.canvas:
             # Center hub shadow for depth
             Color(0, 0, 0, 0.6)  # Deep shadow
@@ -466,30 +501,53 @@ class RouletteWheel(Widget):
             Ellipse(pos=(center_x - inner_radius + 1, center_y - inner_radius + 1),
                    size=(inner_radius * 2 - 2, inner_radius * 2 - 2))
 
-            # Decorative wood inlay with depth
-            Color(0.25, 0.12, 0.06, 1)  # Medium mahogany for inlay base
-            Line(circle=(center_x, center_y, inner_radius), width=2)
-            Line(circle=(center_x, center_y, inner_radius * 0.8), width=2)
+            # Enhanced decorative wood inlay with multiple rings
+            for inlay_radius in [inner_radius, inner_radius * 0.9, inner_radius * 0.8, inner_radius * 0.7]:
+                Color(0.25, 0.12, 0.06, 1)  # Medium mahogany for inlay base
+                Line(circle=(center_x, center_y, inlay_radius), width=2)
+                Color(0.35, 0.18, 0.08, 0.6)  # Light mahogany highlight
+                Line(circle=(center_x, center_y, inlay_radius - 0.5), width=1)
 
-            # Inlay highlights
-            Color(0.35, 0.18, 0.08, 0.8)  # Light mahogany highlights
-            Line(circle=(center_x, center_y, inner_radius - 0.5), width=1)
-            Line(circle=(center_x, center_y, inner_radius * 0.8 - 0.5), width=1)
+            # Radial inlay details for decorative effect
+            for i in range(0, 360, 30):  # Every 30 degrees
+                inlay_angle = math.radians(i)
+                inlay_start = inner_radius * 0.65
+                inlay_end = inner_radius * 0.95
+                x1 = center_x + math.cos(inlay_angle) * inlay_start
+                y1 = center_y + math.sin(inlay_angle) * inlay_start
+                x2 = center_x + math.cos(inlay_angle) * inlay_end
+                y2 = center_y + math.sin(inlay_angle) * inlay_end
+                Color(0.3, 0.15, 0.07, 0.7)  # Decorative radial lines
+                Line(points=[x1, y1, x2, y2], width=1.5)
 
-            # Center hub detail - deeply recessed
+            # Center hub detail - deeply recessed with metallic accent
             Color(0.08, 0.04, 0.02, 1)  # Very dark hub base
             Ellipse(pos=(center_x - inner_radius * 0.3, center_y - inner_radius * 0.3),
                    size=(inner_radius * 0.6, inner_radius * 0.6))
 
-            # Hub surface
+            # Hub surface - polished wood
             Color(0.4, 0.2, 0.08, 1)  # Lighter wood hub
             Ellipse(pos=(center_x - inner_radius * 0.25, center_y - inner_radius * 0.25),
                    size=(inner_radius * 0.5, inner_radius * 0.5))
 
+            # Hub decorative ring
+            Color(0.5, 0.3, 0.12, 1)  # Medium wood ring
+            Line(circle=(center_x, center_y, inner_radius * 0.25), width=2)
+            
             # Hub highlight for 3D effect
             Color(0.6, 0.35, 0.15, 0.6)  # Bright hub highlight
             Ellipse(pos=(center_x - inner_radius * 0.2, center_y - inner_radius * 0.2),
                    size=(inner_radius * 0.3, inner_radius * 0.3))
+            
+            # Hub center - metallic accent
+            Color(0.7, 0.55, 0.25, 1)  # Polished brass center
+            Ellipse(pos=(center_x - inner_radius * 0.1, center_y - inner_radius * 0.1),
+                   size=(inner_radius * 0.2, inner_radius * 0.2))
+            
+            # Hub center highlight
+            Color(0.9, 0.75, 0.35, 0.8)  # Bright brass highlight
+            Ellipse(pos=(center_x - inner_radius * 0.08, center_y - inner_radius * 0.08),
+                   size=(inner_radius * 0.16, inner_radius * 0.16))
         
         # Draw pockets with rotation
         with self.canvas:
@@ -571,21 +629,36 @@ class RouletteWheel(Widget):
                     Triangle(points=[x1_outer, y1_outer, x2_outer, y2_outer, x1_inner, y1_inner])
                     Triangle(points=[x2_outer, y2_outer, x2_inner, y2_inner, x1_inner, y1_inner])
                 
-                # Draw pocket divider (metallic gold separator)
-                # Main gold divider
-                Color(0.9, 0.75, 0.2, 1)  # Bright gold
+                # Draw pocket divider (enhanced metallic gold separator with 3D detail)
                 x1 = center_x + math.cos(angle_start) * pocket_outer
                 y1 = center_y + math.sin(angle_start) * pocket_outer
                 x2 = center_x + math.cos(angle_start) * pocket_inner
                 y2 = center_y + math.sin(angle_start) * pocket_inner
+                
+                # Divider shadow for depth
+                Color(0.4, 0.3, 0.1, 0.6)  # Dark shadow
+                shadow_offset = 1
+                Line(points=[x1 + shadow_offset, y1 + shadow_offset, 
+                            x2 + shadow_offset, y2 + shadow_offset], width=4)
+                
+                # Main gold divider base
+                Color(0.7, 0.55, 0.15, 1)  # Darker gold base
+                Line(points=[x1, y1, x2, y2], width=4)
+
+                # Main gold divider
+                Color(0.9, 0.75, 0.2, 1)  # Bright gold
                 Line(points=[x1, y1, x2, y2], width=3)
 
-                # Gold highlight
+                # Gold highlight - metallic shine
                 Color(1.0, 0.9, 0.4, 1)  # Light gold highlight
-                Line(points=[x1, y1, x2, y2], width=1)
+                Line(points=[x1, y1, x2, y2], width=1.5)
+                
+                # Bright metallic edge
+                Color(1.0, 0.95, 0.5, 1)  # Very bright gold edge
+                Line(points=[x1, y1, x2, y2], width=0.5)
 
-                # Metallic shadow
-                Color(0.6, 0.45, 0.1, 0.8)  # Darker gold
+                # Metallic shadow for 3D effect
+                Color(0.6, 0.45, 0.1, 0.8)  # Darker gold shadow
                 offset_x = math.cos(angle_start + math.pi/2) * 0.5
                 offset_y = math.sin(angle_start + math.pi/2) * 0.5
                 Line(points=[x1 + offset_x, y1 + offset_y, x2 + offset_x, y2 + offset_y], width=1)
@@ -683,72 +756,109 @@ class RouletteWheel(Widget):
                 Ellipse(pos=(ball_x - ball_size/4, ball_y + ball_size/6),
                        size=(ball_size/4, ball_size/4))
         
-        # Draw center marker (metallic pointer) with 3D depth
+        # Draw center dolly (decorative marker/pointer) with enhanced 3D detail
         with self.canvas:
-            pointer_size = 22
-
-            # Enhanced pointer shadow for depth
-            Color(0, 0, 0, 0.6)  # Darker shadow
+            dolly_base_radius = inner_radius * 0.15  # Base circle size
+            dolly_pointer_length = inner_radius * 0.35  # Pointer extends outward
+            pointer_width = 18  # Width of pointer at base
+            
+            # Dolly base shadow for depth
+            Color(0, 0, 0, 0.5)
+            Ellipse(pos=(center_x - dolly_base_radius - 2, center_y - dolly_base_radius - 2),
+                   size=(dolly_base_radius * 2 + 4, dolly_base_radius * 2 + 4))
+            
+            # Dolly base - polished brass/metal base
+            Color(0.6, 0.45, 0.2, 1)  # Dark brass base
+            Ellipse(pos=(center_x - dolly_base_radius, center_y - dolly_base_radius),
+                   size=(dolly_base_radius * 2, dolly_base_radius * 2))
+            
+            # Dolly base highlight - raised center
+            Color(0.75, 0.6, 0.25, 1)  # Medium brass
+            Ellipse(pos=(center_x - dolly_base_radius * 0.8, center_y - dolly_base_radius * 0.8),
+                   size=(dolly_base_radius * 1.6, dolly_base_radius * 1.6))
+            
+            # Dolly center - polished gold center
+            Color(0.9, 0.75, 0.3, 1)  # Bright brass
+            Ellipse(pos=(center_x - dolly_base_radius * 0.5, center_y - dolly_base_radius * 0.5),
+                   size=(dolly_base_radius, dolly_base_radius))
+            
+            # Dolly center highlight - shiny top
+            Color(1.0, 0.9, 0.4, 0.8)  # Very bright highlight
+            Ellipse(pos=(center_x - dolly_base_radius * 0.3, center_y - dolly_base_radius * 0.3),
+                   size=(dolly_base_radius * 0.6, dolly_base_radius * 0.6))
+            
+            # Decorative rings on dolly base
+            for ring_radius in [dolly_base_radius * 0.9, dolly_base_radius * 0.7]:
+                Color(0.5, 0.35, 0.15, 0.8)  # Darker ring
+                Line(circle=(center_x, center_y, ring_radius), width=1)
+                Color(0.85, 0.7, 0.3, 0.6)  # Lighter ring highlight
+                Line(circle=(center_x, center_y, ring_radius - 0.5), width=0.5)
+            
+            # Pointer shadow for depth
+            Color(0, 0, 0, 0.4)
+            pointer_angle = math.pi / 2  # Points upward (toward top)
+            shadow_offset = 2
             shadow_points = [
-                center_x, center_y + inner_radius + 8,
-                center_x - pointer_size/2 + 2, center_y + inner_radius - 7,
-                center_x + pointer_size/2 + 2, center_y + inner_radius - 7
+                center_x, center_y + dolly_base_radius + shadow_offset,
+                center_x - pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset,
+                center_x + pointer_width/2 + shadow_offset, center_y + dolly_base_radius + dolly_pointer_length + shadow_offset
             ]
             Triangle(points=shadow_points)
-
-            # Pointer base shadow
-            Color(0, 0, 0, 0.4)
-            base_shadow_points = [
-                center_x, center_y + inner_radius + 6,
-                center_x - pointer_size/2 + 1, center_y + inner_radius - 9,
-                center_x + pointer_size/2 + 1, center_y + inner_radius - 9
-            ]
-            Triangle(points=base_shadow_points)
-
-            # Main pointer body (brass/metal) - raised effect
-            Color(0.7, 0.5, 0.15, 1)  # Darker brass base
+            
+            # Pointer base (darker metal)
+            Color(0.65, 0.5, 0.18, 1)  # Dark brass
             pointer_base_points = [
-                center_x, center_y + inner_radius + 5,
-                center_x - pointer_size/2, center_y + inner_radius - 10,
-                center_x + pointer_size/2, center_y + inner_radius - 10
+                center_x, center_y + dolly_base_radius,
+                center_x - pointer_width/2, center_y + dolly_base_radius + dolly_pointer_length,
+                center_x + pointer_width/2, center_y + dolly_base_radius + dolly_pointer_length
             ]
             Triangle(points=pointer_base_points)
-
-            # Main pointer surface
-            Color(0.8, 0.6, 0.2, 1)  # Antique brass
+            
+            # Main pointer body (polished brass)
+            Color(0.85, 0.65, 0.25, 1)  # Bright brass
             pointer_points = [
-                center_x, center_y + inner_radius + 4,
-                center_x - pointer_size/2 + 1, center_y + inner_radius - 8,
-                center_x + pointer_size/2 + 1, center_y + inner_radius - 8
+                center_x, center_y + dolly_base_radius + 1,
+                center_x - pointer_width/2 * 0.9, center_y + dolly_base_radius + dolly_pointer_length - 2,
+                center_x + pointer_width/2 * 0.9, center_y + dolly_base_radius + dolly_pointer_length - 2
             ]
             Triangle(points=pointer_points)
-
-            # Metallic highlight with depth
-            Color(0.95, 0.8, 0.3, 1)  # Bright brass highlight
+            
+            # Pointer highlight - metallic shine
+            Color(0.95, 0.8, 0.35, 1)  # Very bright brass
             highlight_points = [
-                center_x, center_y + inner_radius + 3,
-                center_x - pointer_size/4, center_y + inner_radius - 4,
-                center_x + pointer_size/4, center_y + inner_radius - 4
+                center_x, center_y + dolly_base_radius + 2,
+                center_x - pointer_width/4, center_y + dolly_base_radius + dolly_pointer_length * 0.6,
+                center_x + pointer_width/4, center_y + dolly_base_radius + dolly_pointer_length * 0.6
             ]
             Triangle(points=highlight_points)
-
-            # Pointer tip accent with 3D effect
-            Color(1.0, 0.9, 0.1, 1)  # Gold tip
+            
+            # Pointer tip - sharp gold tip
+            Color(1.0, 0.9, 0.2, 1)  # Gold tip
             tip_points = [
-                center_x, center_y + inner_radius + 2,
-                center_x - pointer_size/6, center_y + inner_radius - 1,
-                center_x + pointer_size/6, center_y + inner_radius - 1
+                center_x, center_y + dolly_base_radius + dolly_pointer_length - 1,
+                center_x - pointer_width/6, center_y + dolly_base_radius + dolly_pointer_length - 3,
+                center_x + pointer_width/6, center_y + dolly_base_radius + dolly_pointer_length - 3
             ]
             Triangle(points=tip_points)
-
+            
             # Bright tip highlight
-            Color(1.0, 1.0, 0.5, 0.8)  # Very bright tip
+            Color(1.0, 1.0, 0.5, 0.9)  # Very bright tip
             bright_tip_points = [
-                center_x, center_y + inner_radius + 1.5,
-                center_x - pointer_size/8, center_y + inner_radius - 0.5,
-                center_x + pointer_size/8, center_y + inner_radius - 0.5
+                center_x, center_y + dolly_base_radius + dolly_pointer_length - 0.5,
+                center_x - pointer_width/8, center_y + dolly_base_radius + dolly_pointer_length - 2,
+                center_x + pointer_width/8, center_y + dolly_base_radius + dolly_pointer_length - 2
             ]
             Triangle(points=bright_tip_points)
+            
+            # Decorative side details on pointer
+            Color(0.7, 0.55, 0.2, 0.8)  # Side accent
+            for side_offset in [-pointer_width/3, pointer_width/3]:
+                side_points = [
+                    center_x + side_offset, center_y + dolly_base_radius + dolly_pointer_length * 0.3,
+                    center_x + side_offset * 0.7, center_y + dolly_base_radius + dolly_pointer_length * 0.5,
+                    center_x + side_offset * 0.7, center_y + dolly_base_radius + dolly_pointer_length * 0.7
+                ]
+                Line(points=side_points, width=1.5)
 
 
 
