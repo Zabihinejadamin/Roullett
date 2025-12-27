@@ -318,7 +318,8 @@ class RouletteWheel(Widget):
     
     def draw(self):
         """Draw the roulette wheel with casino-style realism"""
-        center_x = self.width / 2
+        # Shift center to the right by 5% of width (smaller shift)
+        center_x = self.width / 2 + self.width * 0.05
         center_y = self.height / 2
         radius = min(self.width, self.height) * 0.38  # Wheel size
         bumper_outer = radius * 1.15  # Outer bumper track
@@ -370,13 +371,23 @@ class RouletteWheel(Widget):
                 start_y = self.height * 0.3  # Start from 30% up the wheel height
 
                 for i, texture_data in enumerate(self.previous_numbers_textures):
-                    # White background for each number
-                    Color(1, 1, 1, 1.0)  # White background
-                    bg_x = start_x - bg_offset
                     # Most recent number (i=0) at bottom, older numbers above it
                     bg_y = i * line_height + bottom_margin
                     
-                    # Ensure frame doesn't go outside wheel bounds
+                    # Only draw if the frame is within the wheel bounds (accounting for border)
+                    # Check both top and bottom of the frame
+                    frame_top = bg_y + frame_height
+                    frame_bottom = bg_y
+                    
+                    # Skip drawing if frame is completely outside wheel bounds
+                    if frame_bottom > self.height - border_width_px or frame_top < border_width_px:
+                        continue  # Skip this number, it's outside the visible area
+                    
+                    # White background for each number
+                    Color(1, 1, 1, 1.0)  # White background
+                    bg_x = start_x - bg_offset
+                    
+                    # Ensure frame doesn't go outside wheel horizontal bounds
                     if bg_x < border_width_px:
                         bg_x = border_width_px
                     if bg_x + frame_width > self.width - border_width_px:
@@ -1017,7 +1028,7 @@ class RouletteWheel(Widget):
 
         # Store the previous numbers data
         if self.game.previous_numbers:
-            self.previous_numbers_data = self.game.previous_numbers[-15:] if len(self.game.previous_numbers) > 15 else self.game.previous_numbers[:]
+            self.previous_numbers_data = self.game.previous_numbers[-35:] if len(self.game.previous_numbers) > 35 else self.game.previous_numbers[:]
         else:
             self.previous_numbers_data = []
 
@@ -1027,7 +1038,7 @@ class RouletteWheel(Widget):
         font_size = int(20 * FONT_SCALE)
 
         if self.previous_numbers_data:
-            recent_numbers = self.previous_numbers_data[-15:] if len(self.previous_numbers_data) > 15 else self.previous_numbers_data
+            recent_numbers = self.previous_numbers_data[-35:] if len(self.previous_numbers_data) > 35 else self.previous_numbers_data
             recent_numbers.reverse()  # Most recent first
 
             for number in recent_numbers:
@@ -1077,8 +1088,8 @@ class RouletteGame(BoxLayout):
         self.balance = 1000
         self.last_win = None
 
-        # Track previous winning numbers - initialize with 15 random numbers
-        self.previous_numbers = [random.randint(0, 36) for _ in range(15)]
+        # Track previous winning numbers - initialize with 35 random numbers
+        self.previous_numbers = [random.randint(0, 36) for _ in range(35)]
 
         # Initialize casino sounds
         self.load_sounds()
@@ -1528,20 +1539,25 @@ class RouletteGame(BoxLayout):
         )
         self.win_amount_label.bind(size=self.win_amount_label.setter('text_size'))
         
-        # Position in center - calculate positions relative to each other to prevent overlap
+        # Position in center of roulette wheel - calculate positions relative to wheel center
         def update_labels_pos(instance, value):
             if overlay.width > 0 and overlay.height > 0:
+                # Calculate roulette wheel center (same as in wheel.draw())
+                # Wheel center is shifted 5% to the right
+                wheel_center_x = overlay.width / 2 + overlay.width * 0.05
+                wheel_center_y = overlay.height / 2
+                
                 # Calculate margin between labels (scaled for mobile)
                 margin_between_labels = int(15 * FONT_SCALE)  # Space between "YOU WON" and dollar amount
                 
-                # Position "YOU WON" label - center it, accounting for win amount below
-                center_x_win = (overlay.width - self.winning_number_label.width) / 2
-                # Position winning label slightly above absolute center to make room for win amount
-                center_y_win = (overlay.height - self.winning_number_label.height) / 2 + margin_between_labels
+                # Position "YOU WON" label - center it on wheel center, accounting for win amount below
+                center_x_win = wheel_center_x - self.winning_number_label.width / 2
+                # Position winning label slightly above wheel center to make room for win amount
+                center_y_win = wheel_center_y + margin_between_labels
                 self.winning_number_label.pos = (center_x_win, center_y_win)
                 
-                # Position win amount label below "YOU WON" label with margin
-                center_x_amount = (overlay.width - self.win_amount_label.width) / 2
+                # Position win amount label below "YOU WON" label with margin, centered on wheel center
+                center_x_amount = wheel_center_x - self.win_amount_label.width / 2
                 # Position below winning label with margin
                 center_y_amount = center_y_win - self.winning_number_label.height - margin_between_labels
                 self.win_amount_label.pos = (center_x_amount, center_y_amount)
@@ -2250,8 +2266,8 @@ class RouletteGame(BoxLayout):
 
         # Add winning number to previous numbers list
         self.previous_numbers.append(win_number)
-        if len(self.previous_numbers) > 15:
-            self.previous_numbers.pop(0)  # Keep only last 15 numbers
+        if len(self.previous_numbers) > 35:
+            self.previous_numbers.pop(0)  # Keep only last 35 numbers
 
 
         # Update the previous numbers display
