@@ -16,7 +16,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,mp3,wav
 
 # (list) List of inclusions using pattern matching
-#source.include_patterns = assets/*,images/*.png
+source.include_patterns = roulette_game/**/*,sounds/*.mp3,sounds/*.wav
 
 # (list) Source files to exclude (let empty to not exclude anything)
 #source.exclude_exts = spec
@@ -99,7 +99,7 @@ android.permissions = INTERNET
 android.entrypoint = org.kivy.android.FullscreenPythonActivity
 
 # (str) Android app theme, default is ok for Kivy-based app
-android.apptheme = "@android:style/Theme.NoTitleBar.Fullscreen"
+android.apptheme = @android:style/Theme.NoTitleBar
 
 # (list) Pattern to whitelist for the whole project
 #android.whitelist =
