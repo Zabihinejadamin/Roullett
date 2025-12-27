@@ -1570,6 +1570,20 @@ class RouletteGame(BoxLayout):
     
     def create_ui(self):
         """Create casino-style game UI"""
+        # Calculate top margin for camera/notch area on mobile devices
+        top_margin = 0
+        try:
+            from kivy.utils import platform
+            if platform == 'android':
+                top_margin = int(40 * FONT_SCALE)  # Top margin for camera/notch area (~100px on mobile)
+        except:
+            pass
+        
+        # Add top spacer widget for camera/notch area (only on Android)
+        if top_margin > 0:
+            top_spacer = Widget(size_hint_y=None, height=top_margin)
+            self.add_widget(top_spacer)
+        
         # Betting table at top with blue-gray background
         betting_container_outer = BoxLayout(size_hint_y=0.4, orientation='vertical')
         self.create_betting_table_in_container(betting_container_outer)
